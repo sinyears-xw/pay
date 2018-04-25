@@ -1,0 +1,6 @@
+mvn install:install-file -Dfile=rocketmq-client-4.2.0.jar -DgroupId=org.apache.rocketmq -DartifactId=rocketmq-client -Dversion=4.2.0 -Dpackaging=jar
+
+mvn install:install-file -Dfile=rocketmq-common-4.2.0.jar -DgroupId=org.apache.rocketmq -DartifactId=rocketmq-common -Dversion=4.2.0 -Dpackaging=jar
+
+mvn install:install-file -Dfile=rocketmq-remoting-4.2.0.jar -DgroupId=org.apache.rocketmq -DartifactId=rocketmq-remoting -Dversion=4.2.0 -Dpackaging=jar
+
