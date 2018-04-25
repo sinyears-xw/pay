@@ -1,5 +1,5 @@
 *.jar
-/lib/
-/target/
-/logs/
-application-prod.properties
+lib/
+target/
+logs/
+*.properties
