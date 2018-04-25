@@ -27,6 +27,9 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 	@Value("${halfsecret}")
 	String halfsecret;
 
+	@Value("${adminAccount}")
+	String admin;
+
 	private  Log logger = LogFactory.getLog(this.getClass());
 	private static IdWorker idWorker = new IdWorker(0, 1);
 
@@ -273,7 +276,6 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 
 		String from = param.get("user_from").toString();
 		String to = param.get("user_to").toString();
-		String admin = param.get("admin").toString();
 		if (from.equals(to))
 			return Constants.getResult("sameAccount",from,to);
 
@@ -477,7 +479,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 	}
 
 	@Transactional
-	public List<String> doRefund(String orderId, Long amount, String userId, String admin) {
+	public List<String> doRefund(String orderId, Long amount, String userId) {
 		if(checkId(orderId,5))
 			return Constants.getResult("duplicatedId");
 

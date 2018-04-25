@@ -48,6 +48,13 @@
 		    <artifactId>spring-orm</artifactId>
 		</dependency>
 
+		<dependency>
+		    <groupId>javax.servlet</groupId>
+		    <artifactId>javax.servlet-api</artifactId>
+		    <version>3.0.1</version>
+		    <scope>provided</scope>
+		</dependency>
+
        <!--  <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -63,6 +70,11 @@
 	        <groupId>org.springframework.boot</groupId>
 	        <artifactId>spring-boot-starter-undertow</artifactId>
 		</dependency>
+
+		<dependency>
+	        <groupId>org.springframework.boot</groupId>
+	        <artifactId>spring-boot-starter-tomcat</artifactId>
+    	</dependency>
 
 		<dependency>
 			<groupId>mysql</groupId>
@@ -90,14 +102,24 @@
 		    </exclusions>  
 		</dependency>
 
-		<!-- <dependency>
+		<dependency>
 		    <groupId>org.apache.hbase</groupId>
 		    <artifactId>hbase-server</artifactId>
 		    <version>1.4.2</version>
+		    <exclusions>  
+		          <exclusion>   
+		            <groupId>org.slf4j</groupId>  
+		            <artifactId>slf4j-log4j12</artifactId>  
+		          </exclusion>  
+		          <exclusion>   
+		            <groupId>log4j</groupId>  
+		            <artifactId>log4j</artifactId>  
+		          </exclusion>  
+		    </exclusions>  
 		</dependency>
 
 
-		<dependency>
+		<!-- <dependency>
 		    <groupId>org.apache.hbase</groupId>
 		    <artifactId>hbase</artifactId>
 		    <version>1.4.2</version>

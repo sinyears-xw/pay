@@ -8,6 +8,6 @@ public interface MysqlTransactionService {
 	public List<String> doChargeBalance(Map param);
 	public List<String> createWithdraw(Map param);
 	public List<String> doDeposit(Map param);
-	public List<String> doRefund(String orderId, Long amount, String userId, String admin);
+	public List<String> doRefund(String orderId, Long amount, String userId);
 }
 

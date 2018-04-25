@@ -110,7 +110,7 @@ public class MainController {
 			List rs = mysqlTx.doChargeBalance(paramMap);
 			String orderId = paramMap.get("id").toString();
 			if (rs.get(0).equals("19")) {
-				rabbitTemplate.convertAndSend("amq.direct","hotelOrder ",orderId + "|Done");
+				// rabbitTemplate.convertAndSend("amq.direct","hotelOrder ",orderId + "|Done");
 			}
 			return rs;	
 		} catch (Exception e) {
@@ -119,14 +119,14 @@ public class MainController {
 		}
 	}
 
-	@RequestMapping(value = "/refund/{orderId}/{amount}/{userId}/{admin}", method = RequestMethod.GET)
+	@RequestMapping(value = "/forbidden/refund/{orderId}/{amount}/{userId}", method = RequestMethod.GET)
 	@ResponseBody
 	public List<String> refund(@PathVariable String orderId, @PathVariable long amount, @PathVariable String userId, @PathVariable String admin) {
 		try {
 			if (amount < 0 || StringUtil.isEmpty(orderId) || StringUtil.isEmpty(userId) || StringUtil.isEmpty(admin))
 				return Constants.getResult("argsError");
 
-			return mysqlTx.doRefund(orderId,amount,userId,admin);
+			return mysqlTx.doRefund(orderId,amount,userId);
 		} catch (Exception e) {
 			logger.error(e);
 			return Constants.getResult("serverException");
