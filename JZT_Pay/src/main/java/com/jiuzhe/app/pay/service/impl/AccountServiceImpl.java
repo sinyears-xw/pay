@@ -191,5 +191,17 @@ public class AccountServiceImpl implements AccountService{
 			return Constants.getResult("querySucceed");
 		}
 	}
+
+	public List<String> getpromotion() throws IOException {
+		String deposit_rule = rt.opsForValue().get("deposit_rule");
+		if (deposit_rule == null) {
+			List<Map<String, Object>> rules = jdbcTemplate.queryForList("select * from deposit_rule");
+			ObjectMapper mapper = new ObjectMapper();
+			String rulesJson = mapper.writeValueAsString(rules);
+			rt.opsForValue().set("deposit_rule", rulesJson);
+			deposit_rule = rulesJson;
+		}
+		return Constants.getResult("querySucceed",deposit_rule);
+	}
 }
 

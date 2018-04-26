@@ -106,13 +106,12 @@ public class MainController {
 			Map paramMap = mysqlTx.decodeRequestBody(randomKey, param);
 			if (paramMap == null)
 				return Constants.getResult("decodeError");
-
-			List rs = mysqlTx.doChargeBalance(paramMap);
-			String orderId = paramMap.get("id").toString();
-			if (rs.get(0).equals("19")) {
-				// rabbitTemplate.convertAndSend("amq.direct","hotelOrder ",orderId + "|Done");
-			}
-			return rs;	
+			// String orderId = paramMap.get("id").toString();
+			// if (rs.get(0).equals("19")) {
+			// 	// rabbitTemplate.convertAndSend("amq.direct","hotelOrder ",orderId + "|Done");
+			// 	restTemplate
+			// }
+			return mysqlTx.doChargeBalance(paramMap);
 		} catch (Exception e) {
 			logger.error(e);
 			return Constants.getResult("serverException");
@@ -121,9 +120,9 @@ public class MainController {
 
 	@RequestMapping(value = "/forbidden/refund/{orderId}/{amount}/{userId}", method = RequestMethod.GET)
 	@ResponseBody
-	public List<String> refund(@PathVariable String orderId, @PathVariable long amount, @PathVariable String userId, @PathVariable String admin) {
+	public List<String> refund(@PathVariable String orderId, @PathVariable long amount, @PathVariable String userId) {
 		try {
-			if (amount < 0 || StringUtil.isEmpty(orderId) || StringUtil.isEmpty(userId) || StringUtil.isEmpty(admin))
+			if (amount < 0 || StringUtil.isEmpty(orderId) || StringUtil.isEmpty(userId))
 				return Constants.getResult("argsError");
 
 			return mysqlTx.doRefund(orderId,amount,userId);

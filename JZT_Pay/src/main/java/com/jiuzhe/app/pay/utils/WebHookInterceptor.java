@@ -86,6 +86,7 @@ public class WebHookInterceptor extends HandlerInterceptorAdapter {
 
     	String signature = request.getHeader("X-Pingplusplus-Signature");
         String ip = getIp(request);
+        logger.info(ip);
         if (signature == null || signature.equals("")) {
             logger.info("illegal ip: " + ip);
             return false;

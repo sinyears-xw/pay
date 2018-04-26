@@ -112,4 +112,15 @@ public class AccountController {
 			return Constants.getResult("serverException");
 		}	
 	}
+
+	@RequestMapping(value = "/getpromotion", method = RequestMethod.GET)
+	@ResponseBody
+	public List<String> getpromotion() {
+		try {
+			return accountService.getpromotion();
+		} catch (Exception e) {
+			logger.error(e);
+			return Constants.getResult("serverException");
+		}	
+	}
 }

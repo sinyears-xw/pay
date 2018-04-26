@@ -9,11 +9,13 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.web.client.RestTemplate;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import org.codehaus.jackson.map.ObjectMapper;
 import com.jiuzhe.app.pay.utils.*;
+
 
 @Service
 public class MysqlTransactionServiceImpl implements MysqlTransactionService{
@@ -23,6 +25,9 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 
 	@Autowired
 	private StringRedisTemplate rt;
+
+	@Autowired
+    RestTemplate restTemplate;
 
 	@Value("${halfsecret}")
 	String halfsecret;
@@ -113,7 +118,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 			withdraw_interval_type = rule.get("withdraw_interval_type").toString();
 
 			if (amount >= money_min && amount <= money_max) {
-				if (financeType.equals("C"))
+				if (financeType.equals("A"))
 					available_amount = amount;
 				else
 					available_amount = 0;
@@ -123,7 +128,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 		}
 
 		String sql = null;
-		if (financeType.equals("C")) {
+		if (financeType.equals("A")) {
 			sql = String.format("update account set total_balance = total_balance + %d, available_balance = available_balance + %d, updt = now() where user_id = '%s'", amount, amount, from);
 			jdbcTemplate.update(sql);	
 		} else {
@@ -339,7 +344,18 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,1)",idWorker.nextId(),from, to, amount));
 		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,3)",idWorker.nextId(),from, admin, depositAmount));
 
-		return Constants.getResult("chargeSucceed");	
+		Map postData = new HashMap<String,String>();
+		postData.put("id",orderId);
+		postData.put("status","2");
+		Map result = restTemplate.postForObject("http://JZT-HOTEL-CORE/hotelorders/orderchange", postData,Map.class);
+
+		if (!(result.get("status").toString().equals("0"))) {
+			logger.info("orderId:" + orderId);
+			logger.info(result);
+			int except = 0;
+			except = 1 / 0;
+		}
+		return Constants.getResult("chargeSucceed");
 	}		
 
 	@Transactional
