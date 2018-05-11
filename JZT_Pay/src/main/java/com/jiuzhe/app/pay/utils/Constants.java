@@ -46,6 +46,26 @@ public class Constants {
             put("checkPasswdSuccessed", Arrays.asList("38","支付密码输入正确"));
             put("IDgenerated", Arrays.asList("39","生成ID成功"));
             put("IDgeneratedFailed", Arrays.asList("40","生成ID失败"));
+            put("alipayPending", Arrays.asList("41","支付宝支付中"));
+            put("alipayError", Arrays.asList("42","支付宝支付出错"));
+            put("alipayTransSucceed", Arrays.asList("43","支付宝转账成功"));
+            put("alipayTransFailed", Arrays.asList("44","支付宝转账失败"));
+            put("withdrawSucceed", Arrays.asList("45","提现成功"));
+            put("createDepositOrderFailed", Arrays.asList("46","创建充值订单失败"));
+            put("depositOrderNotFound", Arrays.asList("47","充值订单未找到"));
+            put("depositOrderAlreadyFinished", Arrays.asList("48","充值订单已完成"));
+            put("getSettleAccountFailed", Arrays.asList("49","获取结算账户失败"));
+            put("createPayOrderSucceed", Arrays.asList("50","创建支付订单成功"));
+            put("chargeOrderAlreadyFinished", Arrays.asList("51","支付订单已完成"));
+            put("chargeOrderNotFound", Arrays.asList("52","支付订单未找到"));
+            put("depositAmountError", Arrays.asList("53","充值金额出错"));
+            put("getOrderFailed", Arrays.asList("54","获取订单失败"));
+            put("orderCancelled", Arrays.asList("55","订单取消成功"));
+            put("depositOverlimit", Arrays.asList("56","超过该活动最大限额"));
+            put("signedIn", Arrays.asList("57","签到成功"));
+            put("bankcodeError", Arrays.asList("58","银行卡号错误"));
+            put("delSettleAccountSucceed", Arrays.asList("59","删除结算账号成功"));
+            put("notSignedIn", Arrays.asList("60","活动未签到"));
         }
     };
 

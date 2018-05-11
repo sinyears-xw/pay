@@ -23,7 +23,21 @@ public class AccountController {
     @Autowired
     AccountService accountService;
 
-    @RequestMapping(value = "/savesettleaccount", method = RequestMethod.POST)
+    @RequestMapping(value = "/delsettleaccount", method = RequestMethod.POST)
+	@ResponseBody
+	public List<String> delsettleaccount(@RequestBody Map param) {
+		try {
+			if (param == null)
+				return Constants.getResult("argsError","param");
+
+			return accountService.delSettleAccount(param);
+		} catch (Exception e) {
+			logger.error(e);
+			return Constants.getResult("serverException");
+		}	
+	}
+
+	@RequestMapping(value = "/savesettleaccount", method = RequestMethod.POST)
 	@ResponseBody
 	public List<String> savesettleaccount(@RequestBody Map param) {
 		try {
@@ -61,6 +75,21 @@ public class AccountController {
 				return Constants.getResult("argsError","param");
 
 			return accountService.updatePasswd(param);
+
+		} catch (Exception e) {
+			logger.error(e);
+			return Constants.getResult("serverException");
+		}	
+	}
+
+	@RequestMapping(value = "/getbackpasswd", method = RequestMethod.POST)
+	@ResponseBody
+	public List<String> getbackpasswd(@RequestBody Map param) {
+		try {
+			if (param == null)
+				return Constants.getResult("argsError","param");
+
+			return accountService.getBackPasswd(param);
 
 		} catch (Exception e) {
 			logger.error(e);
@@ -118,6 +147,75 @@ public class AccountController {
 	public List<String> getpromotion() {
 		try {
 			return accountService.getpromotion();
+		} catch (Exception e) {
+			logger.error(e);
+			return Constants.getResult("serverException");
+		}	
+	}
+
+	@RequestMapping(value = "/getfrozenasset/{id}", method = RequestMethod.GET)
+	@ResponseBody
+	public List<String> getfrozenasset(@PathVariable String id) {
+		try {
+			if (StringUtil.isEmpty(id))
+				return Constants.getResult("argsError","id");
+			
+			return accountService.getfrozenasset(id);
+		} catch (Exception e) {
+			logger.error(e);
+			return Constants.getResult("serverException");
+		}	
+	}
+
+	@RequestMapping(value = "/signin/{userId}/{hotelId}", method = RequestMethod.GET)
+	@ResponseBody
+	public List<String> signin(@PathVariable String userId, @PathVariable String hotelId) {
+		try {
+			if (StringUtil.isEmpty(userId))
+				return Constants.getResult("argsError","userId");
+
+			if (StringUtil.isEmpty(hotelId))
+				return Constants.getResult("argsError","hotelId");
+			
+			return accountService.signin(userId, hotelId);
+		} catch (Exception e) {
+			logger.error(e);
+			return Constants.getResult("serverException");
+		}	
+	}
+
+	@RequestMapping(value = "/signincheck/{userId}", method = RequestMethod.GET)
+	@ResponseBody
+	public List<String> signin(@PathVariable String userId) {
+		try {
+			if (StringUtil.isEmpty(userId))
+				return Constants.getResult("argsError","userId");
+			
+			return accountService.signincheck(userId);
+		} catch (Exception e) {
+			logger.error(e);
+			return Constants.getResult("serverException");
+		}	
+	}
+
+	@RequestMapping(value = "/getsettleaccount/{id}/{type}", method = RequestMethod.GET)
+	@ResponseBody
+	public List<String> getsettleaccount(@PathVariable String id, @PathVariable String type) {
+		try {
+			if (StringUtil.isEmpty(id))
+				return Constants.getResult("argsError","id");
+
+			if (StringUtil.isEmpty(type))
+				return Constants.getResult("argsError","type");
+
+			switch (type) {
+				case "all":
+				case "alipay":
+					return accountService.getSettleAccount(id, type);
+			}
+
+			return Constants.getResult("getSettleAccountFailed");
+
 		} catch (Exception e) {
 			logger.error(e);
 			return Constants.getResult("serverException");

@@ -13,7 +13,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import org.codehaus.jackson.map.ObjectMapper;
+// import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JavaType;
 import com.jiuzhe.app.pay.utils.*;
 import java.io.*;
 
@@ -78,6 +81,34 @@ public class AccountServiceImpl implements AccountService{
 	}
 
 	@Transactional
+	public List<String> delSettleAccount(Map param) {
+		String userId = param.get("user_id").toString();
+		if (StringUtil.isEmpty(userId))
+			return Constants.getResult("argsError","user_id");
+
+		String channel = param.get("channel").toString();
+		if (StringUtil.isEmpty(channel) || !checkChannel(channel))
+			return Constants.getResult("argsError","channel");
+
+
+		Object bankCode = param.get("recipient_open_bank_code");
+		String openBankCode = "";
+		if (bankCode != null) {
+			openBankCode = bankCode.toString();
+		}
+
+		if (channel.equals("bank_account")) {
+			if (openBankCode.equals(""))
+				return Constants.getResult("bankcodeError");
+			jdbcTemplate.update(String.format("delete from settle_account  where user_id='%s' and channel='bank_account' and recipient_open_bank_code = '%s'",userId,openBankCode));
+		} else {
+			jdbcTemplate.update(String.format("delete from settle_account  where user_id='%s' and channel='%s'",userId,channel));
+		}
+
+		return Constants.getResult("delSettleAccountSucceed");	
+	}		
+
+	@Transactional
 	public List<String> saveSettleAccount(Map param) {
 		String userId = param.get("user_id").toString();
 		if (StringUtil.isEmpty(userId))
@@ -110,6 +141,7 @@ public class AccountServiceImpl implements AccountService{
 			jdbcTemplate.update(String.format("update settle_account set recipient_account='%s',recipient_name='%s',recipient_type='%s',recipient_open_bank_code='%s' where user_id='%s' and channel='%s'", recipient_account,recipient_name,recipient_type,openBankCode,userId,channel));
 		else
 			jdbcTemplate.update(String.format("insert into settle_account(recipient_account,recipient_name,recipient_type,user_id,channel,recipient_open_bank_code) values('%s','%s','%s','%s','%s','%s')", recipient_account,recipient_name,recipient_type,userId,channel,openBankCode));
+		
 		return Constants.getResult("settleAccountSaved");	
 	}		
 
@@ -157,11 +189,32 @@ public class AccountServiceImpl implements AccountService{
 
 		String storedPasswd = accountPasswd.get("passwd").toString();
 		if (storedPasswd.equals(oldPasswd)) {
-			jdbcTemplate.update(String.format("update account set passwd = '%s' updt = now() where user_id = '%s'",newPasswd,userId));
+			jdbcTemplate.update(String.format("update account set passwd = '%s', updt = now() where user_id = '%s'",newPasswd,userId));
 			return Constants.getResult("passwdUpdated");
 		}
 		
 		return Constants.getResult("passwdWrong");
+	}
+
+	@Transactional
+	public List<String> getBackPasswd(Map param) {
+		String userId = param.get("user_id").toString();
+		if (StringUtil.isEmpty(userId))
+			return Constants.getResult("argsError","user_id");
+
+		String newPasswd = param.get("new_passwd").toString();
+		if (StringUtil.isEmpty(newPasswd))
+			return Constants.getResult("argsError","newPasswd");
+
+		Map accountPasswd = null;
+		try {
+			accountPasswd = jdbcTemplate.queryForMap("select passwd from account where user_id = '" + userId + "' for update");
+		} catch (EmptyResultDataAccessException e) {
+			return Constants.getResult("accountNotFound", userId);
+		}
+
+		jdbcTemplate.update(String.format("update account set passwd = '%s', updt = now() where user_id = '%s'",newPasswd,userId));
+		return Constants.getResult("passwdUpdated");
 	}
 
 	public List<String> getAccountInfo(String id) throws IOException {
@@ -177,12 +230,12 @@ public class AccountServiceImpl implements AccountService{
 
 	public List<String> getBillInfo(String id, int page, int size) throws IOException {
 		try {
-			String sql = String.format("select * from(select amount,time_succeeded recordDT, 'deposit' recordType, promotions_type addition, '' transtype from deposit where user_id = '%s' and succeeded = 1\n" +
+			String sql = String.format("select * from(select amount,time_succeeded recordDT, 'deposit' recordType, promotions_type addition, '' transtype from deposit where user_id = '%s' and succeeded = 1 and promotions_type = 1\n" +
 "union all select amount,finished recordDT,'outflow' recordType,user_to addition, type transtype from transaction where user_from = '%s'\n" +
 "union all select amount,finished recordDT,'inflow' recordType,user_from addition, type transtype from transaction where user_to = '%s'\n" +
 "union all select amount,created recordDT, 'withdraw' recordType, status addition, '' transtype from withdrawals where user_id = '%s'\n" +
-// "union all select amount,updt recordDT, 'charge' recordType,order_id addition from charges where user_id = '%s' and status = 1\n" +
-")A order by A.recordDt desc limit %d,%d",id,id,id,id,page*size,size);
+"union all select amount,return_time recordDT, 'cashback' recordType,deposit_id addition, '' transtype from cashback where user_id = '%s'\n" +
+")A order by A.recordDt desc limit %d,%d",id,id,id,id,id,page*size,size);
 			List bill = jdbcTemplate.queryForList(sql);
 			ObjectMapper mapper = new ObjectMapper();
 			String billJson =mapper.writeValueAsString(bill);
@@ -202,6 +255,71 @@ public class AccountServiceImpl implements AccountService{
 			deposit_rule = rulesJson;
 		}
 		return Constants.getResult("querySucceed",deposit_rule);
+	}
+
+	public List<String> signin(String userId, String hotelId) {
+		jdbcTemplate.update(String.format("insert into sign_in(user_id,hotel_id,dt) values('%s','%s',now())", userId,hotelId));
+		return Constants.getResult("signedIn");
+	}
+
+	public List<String> signincheck(String userId) {
+		Map rs = jdbcTemplate.queryForMap(String.format("select count(1) num from sign_in where user_id = '%s' and dt > CAST(CAST(SYSDATE()AS DATE)AS DATETIME)", userId));
+		if (Integer.parseInt(rs.get("num").toString()) <= 0)
+			return Constants.getResult("notSignedIn");
+
+		return Constants.getResult("signedIn");	
+	}
+
+	private String getPromotionTitle(List<Map> promotionlist, String type) {
+		if (promotionlist == null)
+			return "";
+
+		Map promotion = null;
+		for (int i = 0; i < promotionlist.size(); i++) {
+			promotion = promotionlist.get(i);
+			if (promotion.get("type").toString().equals(type))
+				return promotion.get("title").toString();
+		}
+
+		return "";
+	}
+
+	public List<String> getfrozenasset(String id) throws IOException {
+		if (!checkAccount(id))
+			return Constants.getResult("accountNotFound",id);
+
+		ObjectMapper mapper = new ObjectMapper();
+		String sql = String.format("select amount,to_pay_dt,current_installments,installments_num,promotions_type, floor(amount * (100 + discount) / installments_num / 10) * 10 cashback from deposit where user_id = '%s' and promotions_type != 1 and succeeded = 1 order by time_succeeded desc",id);
+		List<Map<String, Object>> products = jdbcTemplate.queryForList(sql);
+		List<String> rs = getpromotion();
+		List<Map> promotionlist = null;
+		if (rs.get(0).equals("31")) {
+			String promotion = rs.get(2);
+			JavaType javaType = mapper.getTypeFactory().constructParametricType(List.class, Map.class); 
+			promotionlist = (List<Map>)mapper.readValue(promotion, javaType);
+		}
+
+		for (int i = 0; i < products.size(); i++) {
+			Map product = products.get(i);
+			String type = product.get("promotions_type").toString();
+			product.put("title", getPromotionTitle(promotionlist, type));
+		}
+		
+		String productsJson = mapper.writeValueAsString(products);
+		return Constants.getResult("querySucceed",productsJson);
+	}
+
+	public List<String> getSettleAccount(String id, String type) throws IOException {
+		String sql = "";
+		if (type.equals("all")) {
+			sql = String.format("select * from settle_account where user_id = '%s' ",id);
+		} else {
+			sql = String.format("select * from settle_account where user_id = '%s' and channel = '%s'",id, type);
+		}	
+		List<Map<String, Object>> products = jdbcTemplate.queryForList(sql);
+		ObjectMapper mapper = new ObjectMapper();
+		String productsJson = mapper.writeValueAsString(products);
+		return Constants.getResult("querySucceed",productsJson);
 	}
 }
 

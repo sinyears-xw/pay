@@ -1,6 +1,7 @@
 package com.jiuzhe.app.pay.control;
 
 import org.springframework.beans.factory.annotation.*;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -12,8 +13,12 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.apache.commons.codec.binary.Base64;
 import com.jiuzhe.app.pay.service.MysqlTransactionService;
+import com.jiuzhe.app.pay.service.AlipayService;
 import com.jiuzhe.app.pay.utils.Constants;
 import com.jiuzhe.app.pay.utils.*;
+import com.alipay.api.internal.util.AlipaySignature;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 @RestController
 public class MainController {
@@ -29,6 +34,9 @@ public class MainController {
 	@Value("${halfsecret}")
 	String halfsecret;
 
+	@Autowired
+    AlipayService alipayService;
+
     @Autowired
     Ping2PlusService p2pService;
 
@@ -38,16 +46,81 @@ public class MainController {
     @Autowired
     MysqlTransactionService mysqlTx;
 
-    @RequestMapping(value = "/webhook/", method = RequestMethod.POST)
-	@ResponseBody
-	public String webhook(@RequestBody Map param) {
-		String rs = "";
+    private Map<String,String> getRequestParam(HttpServletRequest request) {
+    	Map<String,String> params = new HashMap<String,String>();
+		Map requestParams = request.getParameterMap();
+		for (Iterator iter = requestParams.keySet().iterator(); iter.hasNext();) {
+		    String name = (String) iter.next();
+		    String[] values = (String[]) requestParams.get(name);
+		    String valueStr = "";
+		    for (int i = 0; i < values.length; i++) {
+		        valueStr = (i == values.length - 1) ? valueStr + values[i]
+		                    : valueStr + values[i] + ",";
+		  	}
+		    //乱码解决，这段代码在出现乱码时使用。
+			//valueStr = new String(valueStr.getBytes("ISO-8859-1"), "utf-8");
+			params.put(name, valueStr);
+		}
+		return params;
+    }
+
+    @RequestMapping(value = "/webhook/alipay/charge", method = RequestMethod.POST)
+	public String aliwebhookcharge(HttpServletRequest request, HttpServletResponse response) {
 		try {
-			rs = param.toString();
+			Map<String,String> params = getRequestParam(request);
+			if (alipayService.rsaCheck(params)) {
+				if (params.get("trade_status").equals("TRADE_SUCCESS")) {
+					long amount = Math.round(Double.parseDouble(params.get("total_amount"))*100);
+					String out_trade_no = params.get("out_trade_no");
+					List<String> rs = mysqlTx.createDepositInCharge(out_trade_no,amount);
+					if (!rs.get(0).equals("13")) {
+						logger.error("-----------------------------------");
+						logger.error("createDepositInCharge Failed:" + rs.get(1));
+						logger.error(params);
+						return "failed";
+					}
+					rs = mysqlTx.updateChargeStatus(out_trade_no);
+					if (!rs.get(0).equals("19")) {
+						logger.error("-----------------------------------");
+						logger.error("updateChargeStatus Failed:" + rs.get(1));
+						logger.error(params);
+					}
+				}
+				
+			} else {
+				logger.error("rsaCheck Failed:" + params.toString());
+				return "failed";
+			}
+			return "success";
 		} catch (Exception e) {
 			logger.error(e);
-		}
-		return rs;			
+			return "failed";
+		}	
+	}
+
+	@RequestMapping(value = "/webhook/alipay/deposit", method = RequestMethod.POST)
+	public String aliwebhookdeposit(HttpServletRequest request, HttpServletResponse response) {
+		try {
+			Map<String,String> params = getRequestParam(request);
+			if (alipayService.rsaCheck(params)) {
+				if (params.get("trade_status").equals("TRADE_SUCCESS")) {
+					long amount = Math.round(Double.parseDouble(params.get("total_amount"))*100);
+					List<String> rs = mysqlTx.updateDepositStatus(params.get("out_trade_no"),amount);
+					if (!rs.get(0).equals("13")) {
+						logger.error("-----------------------------------");
+						logger.error("updateDepositStatus Failed:" + rs.get(1));
+						logger.error(params);
+					}
+				}
+				
+			} else {
+				logger.error("rsaCheck Failed:" + params.toString());
+			}
+			return "success";
+		} catch (Exception e) {
+			logger.error(e);
+			return "failed";
+		}	
 	}
 
 	@RequestMapping(value = "/trans/{randomKey}", method = RequestMethod.POST)
@@ -74,7 +147,7 @@ public class MainController {
 			if (paramMap == null)
 				return Constants.getResult("decodeError");
 
-			return mysqlTx.createWithdraw(paramMap);
+			return  mysqlTx.doWithdraw(paramMap);
 
 		} catch (Exception e) {
 			logger.error(e);
@@ -83,16 +156,45 @@ public class MainController {
 		
 	}
 
-	@RequestMapping(value = "/deposit/{randomKey}", method = RequestMethod.POST)
+	@RequestMapping(value = "/depositalipay/{randomKey}", method = RequestMethod.POST)
 	@ResponseBody
-	public List<String> deposit(@PathVariable String randomKey, @RequestBody Map param) {
+	public List<String> depositalipay(@PathVariable String randomKey, @RequestBody Map param) {
 		try {
 			Map paramMap = mysqlTx.decodeRequestBody(randomKey, param);
 			if (paramMap == null)
 				return Constants.getResult("decodeError");
 
-			return mysqlTx.doDeposit(paramMap);
-		
+			String body = paramMap.get("body").toString();
+			String subject = paramMap.get("subject").toString();
+
+			List<String> checkrs = mysqlTx.doDeposit(paramMap);
+			if (checkrs.get(0).equals("13")) {
+				return alipayService.getOrder(checkrs.get(2),Double.parseDouble(checkrs.get(3)),body,subject,AlipayUtil.notify_url_deposit);
+			}
+
+			return checkrs;
+		} catch (Exception e) {
+			logger.error(e);
+			return Constants.getResult("serverException");
+		}
+	}
+
+	@RequestMapping(value = "/chargealipay/{randomKey}", method = RequestMethod.POST)
+	@ResponseBody
+	public List<String> chargealipay(@PathVariable String randomKey, @RequestBody Map param) {
+		try {
+			Map paramMap = mysqlTx.decodeRequestBody(randomKey, param);
+			if (paramMap == null)
+				return Constants.getResult("decodeError");
+
+			String body = paramMap.get("body").toString();
+			String subject = paramMap.get("subject").toString();
+			List<String> checkrs = mysqlTx.doCharge(paramMap);
+			if (checkrs.get(0).equals("50")) {
+				return alipayService.getOrder(checkrs.get(2),Double.parseDouble(checkrs.get(3)),body,subject,AlipayUtil.notify_url_charge);
+			}
+
+			return checkrs;
 		} catch (Exception e) {
 			logger.error(e);
 			return Constants.getResult("serverException");
@@ -111,7 +213,7 @@ public class MainController {
 			// 	// rabbitTemplate.convertAndSend("amq.direct","hotelOrder ",orderId + "|Done");
 			// 	restTemplate
 			// }
-			return mysqlTx.doChargeBalance(paramMap);
+			return mysqlTx.doChargeBalance(paramMap, true);
 		} catch (Exception e) {
 			logger.error(e);
 			return Constants.getResult("serverException");
@@ -126,6 +228,20 @@ public class MainController {
 				return Constants.getResult("argsError");
 
 			return mysqlTx.doRefund(orderId,amount,userId);
+		} catch (Exception e) {
+			logger.error(e);
+			return Constants.getResult("serverException");
+		}
+	}
+
+	@RequestMapping(value = "/forbidden/cancelOrder/{orderId}/{amount}/{depositAmount}/{userId}/{merchantId}", method = RequestMethod.GET)
+	@ResponseBody
+	public List<String> refund(@PathVariable String orderId, @PathVariable long amount,@PathVariable long depositAmount,@PathVariable String userId,@PathVariable String merchantId) {
+		try {
+			if (amount < 0 || StringUtil.isEmpty(orderId) || StringUtil.isEmpty(userId) || depositAmount < 0 || StringUtil.isEmpty(merchantId))
+				return Constants.getResult("argsError");
+
+			return mysqlTx.doCancelOrder(orderId,amount,depositAmount,userId,merchantId);
 		} catch (Exception e) {
 			logger.error(e);
 			return Constants.getResult("serverException");
