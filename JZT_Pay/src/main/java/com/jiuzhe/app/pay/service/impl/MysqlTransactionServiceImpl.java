@@ -15,10 +15,11 @@ import org.apache.commons.logging.LogFactory;
 
 import org.codehaus.jackson.map.ObjectMapper;
 import com.jiuzhe.app.pay.utils.*;
+import com.jiuzhe.app.pay.service.AlipayService;
 
 
 @Service
-public class MysqlTransactionServiceImpl implements MysqlTransactionService{
+public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -28,6 +29,9 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 
 	@Autowired
     RestTemplate restTemplate;
+
+    @Autowired
+    AlipayService alipayService;
 
 	@Value("${halfsecret}")
 	String halfsecret;
@@ -49,7 +53,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 		Map num = null;
 		switch (type) {
 		    case 1:
-		    	num = jdbcTemplate.queryForMap("select count(1) num from deposit where id = " + id);
+		    	num = jdbcTemplate.queryForMap(String.format("select count(1) num from deposit where id = %s",id));
 		    	break;
 		    case 2:
 		    	num = jdbcTemplate.queryForMap("select count(1) num from transaction where tx_id = " + id);
@@ -58,10 +62,13 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 		    	num = jdbcTemplate.queryForMap("select count(1) num from withdrawals where id = " + id);
 		    	break;
 		    case 4:
-		    	num = jdbcTemplate.queryForMap("select count(1) num from charges where order_id = '" + id + "'");
+		    	num = jdbcTemplate.queryForMap(String.format("select count(1) num from charges where order_id = '%s' and status = 1",id));
 		    	break;
 		    case 5:
 		    	num = jdbcTemplate.queryForMap("select count(1) num from refund where order_id = '" + id + "'");
+		    	break;
+		     case 6:
+		    	num = jdbcTemplate.queryForMap("select count(1) num from cancel_order where order_id = '" + id + "'");
 		    	break;
 		}
 
@@ -74,6 +81,8 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 	private String loadDepositRule(String type) {
 		try {
 			List<Map<String, Object>> rules = jdbcTemplate.queryForList("select * from deposit_rule where type = '" + type + "'");
+			if (rules == null || rules.size() == 0)
+				return null;
 			ObjectMapper mapper = new ObjectMapper();
 			String rulesJson = mapper.writeValueAsString(rules);
 			rt.opsForValue().set("deposit_rule" + type, rulesJson);
@@ -85,7 +94,6 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 	}
 
 	private List recordDeposit(String from, long amount, String financeType, String depositId) {
-		
 		String deposit_rule = rt.opsForValue().get("deposit_rule" + financeType);
 		List<Map<String, String>> rules = null;
 		if (deposit_rule == null) 
@@ -105,7 +113,8 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 		String withdraw_time_limit = "";
 		String withdraw_interval_type = "";
 		Map rule = null;
-
+		int hit = 0;
+	
 		for (int i = 0; i < rules.size(); i++) {
 			rule = rules.get(i);
 			money_min = Long.parseLong(rule.get("money_min").toString());
@@ -118,29 +127,50 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 			withdraw_interval_type = rule.get("withdraw_interval_type").toString();
 
 			if (amount >= money_min && amount <= money_max) {
+				hit = 1;
 				if (financeType.equals("A"))
 					available_amount = amount;
 				else
 					available_amount = 0;
 
 				break;
-			}		
+			}
 		}
+		if (hit == 0)
+			return Constants.getResult("depositAmountError");
 
-		String sql = null;
-		if (financeType.equals("A")) {
-			sql = String.format("update account set total_balance = total_balance + %d, available_balance = available_balance + %d, updt = now() where user_id = '%s'", amount, amount, from);
-			jdbcTemplate.update(sql);	
+		if (financeType.equals("B")) {
+			Map fb = null;
+			fb = jdbcTemplate.queryForMap(String.format("select count(1) num,sum(amount) amount from deposit where user_id = '%s' and promotions_type = 'B' and status = 'normal'",from));
+			if (Integer.parseInt(fb.get("num").toString()) > 0) {
+				long fbamount = Long.parseLong(fb.get("amount").toString());
+				long left = fbamount + amount - money_max;
+				if (left > 0)
+					return Constants.getResult("depositOverlimit", String.valueOf(left));
+			}
+		}
+	
+		if (!withdraw_time_limit.equals("")) {
+			String dataformat = "%Y-%m-%d %H:%i:%s";
+			String sql = String.format("insert into deposit(id,user_id,amount,available_amount,created,installments_num,period,promotions_type,withdraw_interval_type,withdraw_time_limit,discount) values(%d,'%s', %d, %d, now(),%d,%d,'%s','%s',str_to_date('%s', '%s'),%d)",Long.parseLong(depositId),from,amount,available_amount,installments,period,financeType,withdraw_interval_type,withdraw_time_limit,dataformat,discount);
+			jdbcTemplate.update(sql);
 		} else {
-			sql = String.format("update account set total_balance = total_balance + %d, updt=now() where user_id = '%s'", amount, from);
+			// logger.info(Long.parseLong(depositId));
+			// logger.info(from);
+			// logger.info(amount);
+			// logger.info(available_amount);
+			// logger.info(installments);
+			// logger.info(depositId);
+			// logger.info(period);
+			// logger.info(discount);
+			// logger.info(withdraw_interval_type);
+			// logger.info(financeType);
+			String sql = String.format("insert into deposit(id,user_id,amount,available_amount,created,installments_num,period,promotions_type,withdraw_interval_type,discount,withdraw_time_limit) values(%d,'%s', %d, %d, now(),%d,%d,'%s','%s',%d,date_add(now(), interval 10 YEAR))",Long.parseLong(depositId),from,amount,available_amount,installments,period,financeType,withdraw_interval_type,discount);
+
 			jdbcTemplate.update(sql);
 		}
-
-		String dataformat = "%Y-%m-%d %H:%i:%s";
-		sql = String.format("insert into deposit(id,user_id,amount,available_amount,succeeded,time_succeeded,created,to_pay_dt,installments_num,period,promotions_type,withdraw_interval_type,withdraw_time_limit,discount) values(%d,'%s', %s, %s, 1, now(), now(), date_add(now(), interval %d " + withdraw_interval_type + "),%d,%d,'%s','%s',str_to_date('%s', '%s'),%d)",Long.parseLong(depositId),from,amount,available_amount,period,installments,period,financeType,withdraw_interval_type,withdraw_time_limit,dataformat,discount);
-		jdbcTemplate.update(sql);
-
-		return Constants.getResult("depositSucceed");
+		double aliamount = ((double)amount) / 100;
+		return Constants.getResult("depositSucceed",depositId,String.valueOf(aliamount));
 	}
 
 	private Map getUserAccountInfo(String id) {
@@ -189,7 +219,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 	private List<String> checkAccountAvail(Map userAccount) {
 		try {
 			if (userAccount.get("disable").toString().equals("true"))
-					return Constants.getResult("accountDisabled");
+					return Constants.getResult("accountDisabled", userAccount.get("user_id").toString());
 			return Constants.getResult("accountChecked");
 		} catch (Exception e) {
 			logger.error(e);
@@ -266,9 +296,15 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 	}
 
 	@Transactional
-	public List<String> doChargeBalance(Map param) {
+	public List<String> doCharge(Map param) {
 		String orderId = param.get("id").toString();
-		if(checkId(orderId, 4))
+		Map chargeOrder = jdbcTemplate.queryForMap(String.format("select count(1) num, status from charges where order_id = '%s'",orderId));
+		Object status = chargeOrder.get("status");
+		String statusStr = "";
+		int num = Integer.parseInt(chargeOrder.get("num").toString());
+		if (status != null)
+			statusStr = status.toString();
+		if ( num > 0 && statusStr.equals("successed"))
 			return Constants.getResult("duplicatedId");
 
 		long amount = Long.parseLong(param.get("amount").toString());
@@ -276,7 +312,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 			return Constants.getResult("chargeAmountError");
 
 		long depositAmount = Long.parseLong(param.get("deposit_amount").toString());
-		if (depositAmount <= 0)
+		if (depositAmount < 0)
 			return Constants.getResult("chargeDepositError");
 
 		String from = param.get("user_from").toString();
@@ -284,7 +320,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 		if (from.equals(to))
 			return Constants.getResult("sameAccount",from,to);
 
-		String[] ids = new String[3];
+		String[] ids = new String[2];
 		ids[0] = from;
 		ids[1] = to;
 		Map checkAccount = null;
@@ -299,10 +335,79 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 		if (userAccounts.size() != 2) {
 			String missed = getFirstNotExist(ids, userAccounts);
 			if (missed == null)
-				return Constants.getResult("accountSearchError");
-			checkrs = new ArrayList<>(Constants.getResult("accountNotFound")); 
-			checkrs.add(missed);
-			return checkrs;
+				return Constants.getResult("accountSearchError", missed);
+
+			return Constants.getResult("accountNotFound", missed); 
+		}
+
+		//账户校验-是否禁用
+
+		for (int i = 0; i < userAccounts.size(); i++) {
+			checkAccount = userAccounts.get(i);
+			checkrs = checkAccountAvail(checkAccount);
+			if (!checkrs.get(0).equals("5")) {
+				return checkrs;
+			}
+		}
+		if (num == 0)
+			jdbcTemplate.update(String.format("insert into charges(user_id,order_id,status,amount,deposit_amount,merchant_id) values('%s','%s',%d,%d,%d,'%s')",from,orderId,3,amount,depositAmount,to));
+		
+		double aliamount = ((double)(amount + depositAmount)) / 100;
+		return Constants.getResult("createPayOrderSucceed",orderId,String.valueOf(aliamount));
+	}
+
+	@Transactional
+	public List<String> doChargeBalance(Map param,boolean newOrder) {
+		String orderId = param.get("id").toString();
+		if(checkId(orderId, 4))
+			return Constants.getResult("duplicatedId");
+
+		// long amount = Long.parseLong(param.get("amount").toString());
+		// if (amount <= 0)
+		// 	return Constants.getResult("chargeAmountError");
+
+		// long depositAmount = Long.parseLong(param.get("deposit_amount").toString());
+		// if (depositAmount < 0)
+		// 	return Constants.getResult("chargeDepositError");
+
+		Map postDataOrder = new HashMap<String,String>();
+		postDataOrder.put("id",orderId);
+		Map orderResult = restTemplate.postForObject("http://JZT-HOTEL-CORE/hotelorders/id", postDataOrder,Map.class);
+
+		if (!(orderResult.get("status").toString().equals("0"))) {
+			logger.info("orderId:" + orderId);
+			logger.info(orderResult);
+			return Constants.getResult("getOrderFailed",orderId);
+		}
+
+		Map orderData = (Map)orderResult.get("data");
+		long amount = Long.parseLong(orderData.get("skuPrice").toString()) * 100;
+		long depositAmount = Long.parseLong(orderData.get("skuBond").toString()) * 100;
+	
+		String from = param.get("user_from").toString();
+		String to = param.get("user_to").toString();
+		if (from.equals(to))
+			return Constants.getResult("sameAccount",from,to);
+
+		String[] ids = new String[2];
+		ids[0] = from;
+		ids[1] = to;
+		Map checkAccount = null;
+		List<String> checkrs = null;
+		Map userAccount = null;
+
+		//获取多个账户信息
+		List<Map<String, Object>> userAccounts = getUserAccountInfos(ids);
+		if (userAccounts == null)
+			return Constants.getResult("accountSearchError");
+
+		//比对获取账户信息个数
+		if (userAccounts.size() != 2) {
+			String missed = getFirstNotExist(ids, userAccounts);
+			if (missed == null)
+				return Constants.getResult("accountSearchError", missed);
+
+			return Constants.getResult("accountNotFound", missed);
 		}
 
 		//账户校验-支付密码/是否禁用
@@ -311,18 +416,24 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 			checkAccount = userAccounts.get(i);
 			if (checkAccount.get("user_id").toString().equals(from)) {
 				userAccount = userAccounts.get(i);
-				checkrs = checkAccountAll(checkAccount, param);
-				if (!checkrs.get(0).equals("5")) 
-					return checkrs;
+				if (newOrder) {
+					checkrs = checkAccountAll(checkAccount, param);
+					if (!checkrs.get(0).equals("5")) 
+						return checkrs;
+				} else {
+					checkrs = checkAccountAvail(checkAccount);
+					if (!checkrs.get(0).equals("5")) {
+						return checkrs;
+					}
+				}
 			} else {
 				checkrs = checkAccountAvail(checkAccount);
 				if (!checkrs.get(0).equals("5")) {
-					checkrs = new ArrayList<>(checkrs);  
-					checkrs.add(checkAccount.get("user_id").toString());
 					return checkrs;
 				}
 			}	
 		}
+		
 
 		long available_balance = Long.parseLong(userAccount.get("available_balance").toString());
 		long trans_incomes = Long.parseLong(userAccount.get("trans_incomes").toString());
@@ -338,11 +449,18 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 
 		deductAmount(from,trans_incomes,amount + depositAmount);
 		jdbcTemplate.update(String.format("update account set available_balance = available_balance + %d, total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id = '%s'", amount, amount, amount,to));
-		jdbcTemplate.update(String.format("update account set available_balance = available_balance + %d, total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id = '%s'", depositAmount, depositAmount, depositAmount,admin));
 		
-		jdbcTemplate.update(String.format("insert into charges(user_id,order_id,status,amount) values('%s','%s',%d,%d)",from,orderId,1,amount));
 		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,1)",idWorker.nextId(),from, to, amount));
-		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,3)",idWorker.nextId(),from, admin, depositAmount));
+
+		if (newOrder)
+			jdbcTemplate.update(String.format("insert into charges(user_id,order_id,status,amount,deposit_amount,merchant_id) values('%s','%s',%d,%d,%d,'%s')",from,orderId,1,amount,depositAmount,to));
+		else
+			jdbcTemplate.update(String.format("update charges set status = 1, updt = now() where order_id = '%s'",orderId));
+		
+		if (depositAmount > 0) {
+			jdbcTemplate.update(String.format("update account set available_balance = available_balance + %d, total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id = '%s'", depositAmount, depositAmount, depositAmount,admin));
+			jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,3)",idWorker.nextId(),from, admin, depositAmount));
+		}
 
 		Map postData = new HashMap<String,String>();
 		postData.put("id",orderId);
@@ -403,8 +521,6 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 			} else {
 				checkrs = checkAccountAvail(checkAccount);
 				if (!checkrs.get(0).equals("5")) {
-					checkrs = new ArrayList<>(checkrs);  
-					checkrs.add(checkAccount.get("user_id").toString());
 					return checkrs;
 				}
 			}	
@@ -427,7 +543,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 	}
 
 	@Transactional
-	public List<String> createWithdraw(Map param) {
+	public List<String> doWithdraw(Map param) {
 		String withdrawId = param.get("id").toString();
 		if(checkId(withdrawId,3))
 			return Constants.getResult("duplicatedId");
@@ -459,43 +575,158 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 		if (available_balance < amount)
 			return Constants.getResult("withdrawOverlimited");
 
-		Map<String,Object> settleAccountNum = jdbcTemplate.queryForMap(String.format("select count(1) number from settle_account where user_id = '%s' and channel = '%s' and id = %s for update", from, channel, settle_account_id));
+		Map<String,Object> settleAccountNum = jdbcTemplate.queryForMap(String.format("select count(1) number, recipient_account,recipient_name from settle_account where user_id = '%s' and channel = '%s' and id = %s for update", from, channel, settle_account_id));
 		if (Integer.parseInt(settleAccountNum.get("number").toString()) <= 0)
 			return Constants.getResult("settleAccountError");
 
-		deductAmount(from,trans_incomes,amount);
+		Object payeeAccountObj = settleAccountNum.get("recipient_account");
+		if (payeeAccountObj == null || StringUtil.isEmpty(payeeAccountObj.toString()))
+			return Constants.getResult("settleAccountError");
 
-		String sql = String.format("insert into withdrawals(id,user_id,fee,settle_account_id,status,amount,description,channel) values(%d,'%s', %s, %s,'created',%d,'%s','%s')",Long.parseLong(withdrawId), from, fee, settle_account_id, amount, description,channel);
+		Object payeeNameObj = settleAccountNum.get("recipient_name");
+		if (payeeNameObj == null || StringUtil.isEmpty(payeeNameObj.toString()))
+			return Constants.getResult("settleAccountError");
+
+		int paid = 0;
+		List<String> rs = null;
+		String aliparamString = "";
+		switch(channel) {
+			case "alipay":
+				Map aliparam = new HashMap<String,String>();
+				aliparam.put("out_biz_no",withdrawId);
+				aliparam.put("payee_type",AlipayUtil.payee_type);
+				aliparam.put("payer_show_name",AlipayUtil.payer_show_name);
+				aliparam.put("payee_account",payeeAccountObj.toString());
+				aliparam.put("payee_real_name",payeeNameObj.toString());
+				aliparam.put("amount",String.valueOf(((double)amount/100)));
+				aliparam.put("remark",description);
+
+				try {
+					ObjectMapper mapper = new ObjectMapper();
+					aliparamString = mapper.writeValueAsString(aliparam);
+				}  catch (Exception e) {
+					logger.error(e);
+					return Constants.getResult("argsError");
+				}
+
+				rs = alipayService.doTrans(aliparamString);
+				if (rs.get(0).equals("43")) {
+					paid = 1;
+				}
+		}
+
+		if (paid == 1) {
+			deductAmount(from,trans_incomes,amount);
+			String sql = String.format("insert into withdrawals(id,user_id,fee,settle_account_id,status,amount,description,channel) values(%d,'%s', %s, %s,'succeeded',%d,'%s','%s')",Long.parseLong(withdrawId), from, fee, settle_account_id, amount, description,channel);
+			jdbcTemplate.update(sql);
+
+			return Constants.getResult("withdrawSucceed");
+		}
+
+		return rs;
+	}
+
+	@Transactional
+	public List<String> createDepositInCharge(String id, long amount) {
+		List<Map<String,Object>> rslist = jdbcTemplate.queryForList(String.format("select status,user_id from charges where order_id = '%s' for update",id));
+		if (rslist == null || rslist.size() == 0) {
+			return Constants.getResult("chargeOrderNotFound");
+		}
+
+		Map<String,Object> rs = rslist.get(0);
+		String status = rs.get("status").toString();
+		if (status.equals("successed"))
+			return Constants.getResult("depositSucceed");
+
+		String from = rs.get("user_id").toString();
+		String depositId = String.valueOf(idWorker.nextId());
+		List<String> checkrs =  recordDeposit(from, amount, "A",depositId);
+		if (checkrs.get(0).equals("13"))
+			return updateDepositStatus(depositId, amount);
+		return checkrs;
+	}
+
+	public List<String> updateChargeStatus(String id) {
+		List<Map<String,Object>> rslist = jdbcTemplate.queryForList(String.format("select * from charges where order_id = '%s' for update",id));
+		if (rslist == null || rslist.size() == 0) {
+			return Constants.getResult("chargeOrderNotFound");
+		}
+
+		Map<String,Object> rs = rslist.get(0);
+		String status = rs.get("status").toString();
+		if (status.equals("successed"))
+			return Constants.getResult("chargeOrderAlreadyFinished");
+
+		Map<String, Object> params = new HashMap<String, Object>();
+		params.put("id", rs.get("order_id"));
+		params.put("amount", rs.get("amount"));
+		params.put("deposit_amount", rs.get("deposit_amount"));
+		params.put("user_from", rs.get("user_id"));
+		params.put("user_to", rs.get("merchant_id"));
+
+		return doChargeBalance(params, false);
+	}
+
+	@Transactional
+	public List<String> updateDepositStatus(String id, long amount) {
+		List<Map<String,Object>> rslist = jdbcTemplate.queryForList(String.format("select withdraw_interval_type,period,promotions_type,succeeded,user_id from deposit where id = '%s' for update",id));
+		if (rslist == null || rslist.size() == 0) {
+			return Constants.getResult("depositOrderNotFound");
+		}
+
+		Map<String,Object> rs = rslist.get(0);
+		String financeType = rs.get("promotions_type").toString();
+		String succeeded = rs.get("succeeded").toString();
+		if (succeeded.equals("1"))
+			return Constants.getResult("depositOrderAlreadyFinished");
+		
+		String from = rs.get("user_id").toString();
+		String period = rs.get("period").toString();
+		String withdraw_interval_type = rs.get("withdraw_interval_type").toString();
+		long available_amount = amount;
+		String sql = null;
+		
+		if (financeType.equals("A")) {
+			
+			sql = String.format("update account set total_balance = total_balance + %d, available_balance = available_balance + %d, updt = now() where user_id = '%s'", amount, amount, from);
+			jdbcTemplate.update(sql);	
+		} else {
+			available_amount = 0;
+			sql = String.format("update account set total_balance = total_balance + %d, updt=now() where user_id = '%s'", amount, from);
+			jdbcTemplate.update(sql);
+		}
+		sql = String.format("update deposit set amount = %d,available_amount = %d,succeeded = 1,time_succeeded = now(), updt = now(),status = 1, to_pay_dt = date_add(now(), interval %s %s) where id = %s",amount,available_amount,period,withdraw_interval_type,id);
+		
 		jdbcTemplate.update(sql);
-
-		return Constants.getResult("withdrawApplied");
+		return Constants.getResult("depositSucceed");
 	}
 
 	@Transactional
 	public List<String> doDeposit(Map param) {
 		String depositId = param.get("id").toString();
+		String financeType = param.get("finance_type").toString();
+		
 		if(checkId(depositId,1))
 			return Constants.getResult("duplicatedId");
-
+	
 		long amount = Long.parseLong(param.get("amount").toString());
 		if (amount <= 0)
 			return Constants.getResult("depositAmountError");
-
+	
 		String from = param.get("user_from").toString();
 		Map userAccount = getUserAccountInfo(from);
 		if (userAccount == null)
-			return Constants.getResult("accountSearchError");
-
+			return Constants.getResult("accountSearchError", from);
+	
 		List checkrs = checkAccountAvail(userAccount);
 		if (!checkrs.get(0).equals("5"))
-			return Constants.getResult("accountDisabled");
+			return checkrs;
 
-		String financeType = param.get("finance_type").toString();
 		return recordDeposit(from, amount, financeType,depositId);
 	}
 
 	@Transactional
-	public List<String> doRefund(String orderId, Long amount, String userId) {
+	public List<String> doRefund(String orderId, long amount, String userId) {
 		if(checkId(orderId,5))
 			return Constants.getResult("duplicatedId");
 
@@ -505,7 +736,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 
 		List checkrs = checkAccountAvail(userAccount);
 		if (!checkrs.get(0).equals("5"))
-			return Constants.getResult("accountDisabled");
+			return checkrs;
 
 		jdbcTemplate.update(String.format("update account set available_balance = available_balance + %d, total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id = '%s'", amount, amount, amount,userId));
 		jdbcTemplate.update(String.format("update account set available_balance = available_balance - %d, total_balance = total_balance - %d, trans_incomes = trans_incomes - %d where user_id = '%s'", amount, amount, amount,admin));
@@ -513,6 +744,28 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService{
 		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,3)",idWorker.nextId(),admin, userId, amount));
 
 		return Constants.getResult("refundSucceed");
+	}
+
+	@Transactional
+	public List<String> doCancelOrder(String orderId, long amount, long depositAmount, String userId, String merchantId) {
+		if(checkId(orderId,6))
+			return Constants.getResult("duplicatedId");
+
+		Map userAccount = getUserAccountInfo(userId);
+		if (userAccount == null)
+			return Constants.getResult("accountSearchError");
+
+		List checkrs = checkAccountAvail(userAccount);
+		if (!checkrs.get(0).equals("5"))
+			return checkrs;
+
+		jdbcTemplate.update(String.format("update account set available_balance = available_balance + %d, total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id = '%s'", amount+depositAmount, amount+depositAmount, amount+depositAmount,userId));
+		jdbcTemplate.update(String.format("update account set available_balance = available_balance - %d, total_balance = total_balance - %d, trans_incomes = trans_incomes - %d where user_id = '%s'", depositAmount, depositAmount, depositAmount,admin));
+		jdbcTemplate.update(String.format("update account set available_balance = available_balance - %d, total_balance = total_balance - %d, trans_incomes = trans_incomes - %d where user_id = '%s'", amount, amount, amount,merchantId));
+		jdbcTemplate.update(String.format("insert into cancel_order(order_id,user_id,amount,admin,deposit_amount,merchant_id) values('%s','%s',%d,'%s',%d,'%s')",orderId,userId,amount,admin,depositAmount,merchantId));
+		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,3)",idWorker.nextId(),admin, userId, depositAmount));
+		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,5)",idWorker.nextId(),merchantId, userId, amount));
+		return Constants.getResult("orderCancelled");
 	}
 }
 
