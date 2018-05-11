@@ -442,9 +442,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 
 		long left_balance = available_balance - amount - depositAmount;
 		if (left_balance < 0) {
-			checkrs = new ArrayList<>(Constants.getResult("balanceInsufficient"));
-			checkrs.add(String.valueOf(left_balance));
-			return checkrs;
+			return Constants.getResult("balanceInsufficient", String.valueOf(left_balance));
 		}
 
 		deductAmount(from,trans_incomes,amount + depositAmount);
