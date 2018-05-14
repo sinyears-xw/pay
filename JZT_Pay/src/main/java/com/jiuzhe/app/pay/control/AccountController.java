@@ -153,6 +153,17 @@ public class AccountController {
 		}	
 	}
 
+	@RequestMapping(value = "/getproductdetail", method = RequestMethod.GET)
+	@ResponseBody
+	public List<String> getproductdetail() {
+		try {
+			return accountService.getproductdetail();
+		} catch (Exception e) {
+			logger.error(e);
+			return Constants.getResult("serverException");
+		}	
+	}
+
 	@RequestMapping(value = "/getfrozenasset/{id}", method = RequestMethod.GET)
 	@ResponseBody
 	public List<String> getfrozenasset(@PathVariable String id) {

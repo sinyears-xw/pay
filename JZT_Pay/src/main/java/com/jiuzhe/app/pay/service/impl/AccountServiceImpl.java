@@ -257,6 +257,18 @@ public class AccountServiceImpl implements AccountService{
 		return Constants.getResult("querySucceed",deposit_rule);
 	}
 
+	public List<String> getproductdetail() throws IOException {
+		String productDetail = rt.opsForValue().get("productDetail");
+		if (productDetail == null) {
+			List<Map<String, Object>> details = jdbcTemplate.queryForList("select content from product_detail order by id");
+			ObjectMapper mapper = new ObjectMapper();
+			String detailsJson = mapper.writeValueAsString(details);
+			rt.opsForValue().set("productDetail", detailsJson);
+			productDetail = detailsJson;
+		}
+		return Constants.getResult("querySucceed",productDetail);
+	}
+
 	public List<String> signin(String userId, String hotelId) {
 		jdbcTemplate.update(String.format("insert into sign_in(user_id,hotel_id,dt) values('%s','%s',now())", userId,hotelId));
 		return Constants.getResult("signedIn");
