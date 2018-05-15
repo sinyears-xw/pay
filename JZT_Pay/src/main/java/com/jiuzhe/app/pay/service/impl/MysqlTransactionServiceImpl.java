@@ -170,7 +170,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 			jdbcTemplate.update(sql);
 		}
 		double aliamount = ((double)amount) / 100;
-		return Constants.getResult("depositSucceed",depositId,String.valueOf(aliamount));
+		return Constants.getResult("depositSucceed",depositId,String.valueOf(aliamount),String.valueOf(amount));
 	}
 
 	private Map getUserAccountInfo(String id) {

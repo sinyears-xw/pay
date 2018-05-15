@@ -14,11 +14,15 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.apache.commons.codec.binary.Base64;
 import com.jiuzhe.app.pay.service.MysqlTransactionService;
 import com.jiuzhe.app.pay.service.AlipayService;
+import com.jiuzhe.app.pay.service.WXpayService;
 import com.jiuzhe.app.pay.utils.Constants;
 import com.jiuzhe.app.pay.utils.*;
 import com.alipay.api.internal.util.AlipaySignature;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.dom4j.Document;
+import org.dom4j.Element;
+import org.dom4j.DocumentHelper;
 
 @RestController
 public class MainController {
@@ -36,6 +40,9 @@ public class MainController {
 
 	@Autowired
     AlipayService alipayService;
+
+    @Autowired
+    WXpayService wxpayService;
 
     @Autowired
     Ping2PlusService p2pService;
@@ -63,6 +70,42 @@ public class MainController {
 		}
 		return params;
     }
+
+    private Map<String,String> getWeChatPayReturn(HttpServletRequest request) {
+    	try {
+            InputStream inStream = request.getInputStream();
+            int _buffer_size = 1024;
+            if (inStream != null) {
+                ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+                byte[] tempBytes = new byte[_buffer_size];
+                int count = -1;
+                while ((count = inStream.read(tempBytes, 0, _buffer_size)) != -1) {
+                    outStream.write(tempBytes, 0, count);
+                }
+                tempBytes = null;
+                outStream.flush();
+                //将流转换成字符串
+                String result = new String(outStream.toByteArray(), "UTF-8");
+             
+                Document doc = DocumentHelper.parseText(result);
+                Element root = doc.getRootElement();
+                List<Element> elementList = root.elements(); 
+            	
+            	Map<String, String> map = new HashMap<String, String>();  
+               for (Element e : elementList){  
+		            map.put(e.getName(), e.getText());  
+		        }  
+              
+                return map;
+            }
+
+           return null;
+        } catch (Exception e) {
+            logger.error(e);
+            return null;
+        }
+     
+	}
 
     @RequestMapping(value = "/webhook/alipay/charge", method = RequestMethod.POST)
 	public String aliwebhookcharge(HttpServletRequest request, HttpServletResponse response) {
@@ -123,6 +166,33 @@ public class MainController {
 		}	
 	}
 
+	@RequestMapping(value = "/webhook/wx/deposit", method = RequestMethod.POST)
+	public String wxwebhookdeposit(HttpServletRequest request, HttpServletResponse response) {
+		try {
+			Map<String,String> params = getWeChatPayReturn(request);
+			if (params != null) {
+				logger.info(params);
+				// if (params.get("trade_status").equals("TRADE_SUCCESS")) {
+				// 	long amount = Math.round(Double.parseDouble(params.get("total_amount"))*100);
+				// 	List<String> rs = mysqlTx.updateDepositStatus(params.get("out_trade_no"),amount);
+				// 	if (!rs.get(0).equals("13")) {
+				// 		logger.error("-----------------------------------");
+				// 		logger.error("updateDepositStatus Failed:" + rs.get(1));
+				// 		logger.error(params);
+				// 	}
+				// }
+				
+			} else {
+				logger.error("params is null");
+				return "failed";
+			}
+			return "<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>";
+		} catch (Exception e) {
+			logger.error(e);
+			return "failed";
+		}	
+	}
+
 	@RequestMapping(value = "/trans/{randomKey}", method = RequestMethod.POST)
 	@ResponseBody
 	public List<String> trans(@PathVariable String randomKey, @RequestBody Map param) {
@@ -154,6 +224,29 @@ public class MainController {
 			return Constants.getResult("serverException");
 		}
 		
+	}
+
+	@RequestMapping(value = "/depositwx/{randomKey}", method = RequestMethod.POST)
+	@ResponseBody
+	public List<String> depositwx(@PathVariable String randomKey, @RequestBody Map param) {
+		try {
+			Map paramMap = mysqlTx.decodeRequestBody(randomKey, param);
+			if (paramMap == null)
+				return Constants.getResult("decodeError");
+
+			String body = paramMap.get("body").toString();
+			String ip = paramMap.get("ip").toString();
+
+			List<String> checkrs = mysqlTx.doDeposit(paramMap);
+			if (checkrs.get(0).equals("13")) {
+				return wxpayService.getOrder(checkrs.get(2),Long.parseLong(checkrs.get(4)),body,WXpayUtil.notify_url_deposit,ip);
+			}
+
+			return checkrs;
+		} catch (Exception e) {
+			logger.error(e);
+			return Constants.getResult("serverException");
+		}
 	}
 
 	@RequestMapping(value = "/depositalipay/{randomKey}", method = RequestMethod.POST)

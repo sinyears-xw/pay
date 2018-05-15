@@ -66,6 +66,8 @@ public class Constants {
             put("bankcodeError", Arrays.asList("58","银行卡号错误"));
             put("delSettleAccountSucceed", Arrays.asList("59","删除结算账号成功"));
             put("notSignedIn", Arrays.asList("60","活动未签到"));
+            put("wxpayPending", Arrays.asList("61","微信支付中"));
+            put("wxpayError", Arrays.asList("62","微信支付失败"));
         }
     };
 
