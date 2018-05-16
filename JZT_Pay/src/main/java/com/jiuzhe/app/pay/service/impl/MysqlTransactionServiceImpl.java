@@ -93,7 +93,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		}
 	}
 
-	private List recordDeposit(String from, long amount, String financeType, String depositId) {
+	private List recordDeposit(String from, long amount, String financeType, String depositId, String referee, String referee_phone) {
 		String deposit_rule = rt.opsForValue().get("deposit_rule" + financeType);
 		List<Map<String, String>> rules = null;
 		if (deposit_rule == null) 
@@ -152,7 +152,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 	
 		if (!withdraw_time_limit.equals("")) {
 			String dataformat = "%Y-%m-%d %H:%i:%s";
-			String sql = String.format("insert into deposit(id,user_id,amount,available_amount,created,installments_num,period,promotions_type,withdraw_interval_type,withdraw_time_limit,discount) values(%d,'%s', %d, %d, now(),%d,%d,'%s','%s',str_to_date('%s', '%s'),%d)",Long.parseLong(depositId),from,amount,available_amount,installments,period,financeType,withdraw_interval_type,withdraw_time_limit,dataformat,discount);
+			String sql = String.format("insert into deposit(id,user_id,amount,available_amount,created,installments_num,period,promotions_type,withdraw_interval_type,withdraw_time_limit,discount,referee,referee_phone) values(%d,'%s', %d, %d, now(),%d,%d,'%s','%s',str_to_date('%s', '%s'),%d,%s,%s)",Long.parseLong(depositId),from,amount,available_amount,installments,period,financeType,withdraw_interval_type,withdraw_time_limit,dataformat,discount,referee,referee_phone);
 			jdbcTemplate.update(sql);
 		} else {
 			// logger.info(Long.parseLong(depositId));
@@ -165,7 +165,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 			// logger.info(discount);
 			// logger.info(withdraw_interval_type);
 			// logger.info(financeType);
-			String sql = String.format("insert into deposit(id,user_id,amount,available_amount,created,installments_num,period,promotions_type,withdraw_interval_type,discount,withdraw_time_limit) values(%d,'%s', %d, %d, now(),%d,%d,'%s','%s',%d,date_add(now(), interval 10 YEAR))",Long.parseLong(depositId),from,amount,available_amount,installments,period,financeType,withdraw_interval_type,discount);
+			String sql = String.format("insert into deposit(id,user_id,amount,available_amount,created,installments_num,period,promotions_type,withdraw_interval_type,discount,withdraw_time_limit,referee,referee_phone) values(%d,'%s', %d, %d, now(),%d,%d,'%s','%s',%d,date_add(now(), interval 10 YEAR),%s,%s)",Long.parseLong(depositId),from,amount,available_amount,installments,period,financeType,withdraw_interval_type,discount,referee,referee_phone);
 
 			jdbcTemplate.update(sql);
 		}
@@ -638,7 +638,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 
 		String from = rs.get("user_id").toString();
 		String depositId = String.valueOf(idWorker.nextId());
-		List<String> checkrs =  recordDeposit(from, amount, "A",depositId);
+		List<String> checkrs =  recordDeposit(from, amount, "A",depositId, "", "");
 		if (checkrs.get(0).equals("13"))
 			return updateDepositStatus(depositId, amount);
 		return checkrs;
@@ -703,6 +703,14 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 	public List<String> doDeposit(Map param) {
 		String depositId = param.get("id").toString();
 		String financeType = param.get("finance_type").toString();
+		String referee = "";
+		String referee_phone = "";
+
+		if (param.containsKey("referee")) 
+			referee = param.get("referee").toString();
+
+		if (param.containsKey("referee_phone")) 
+			referee_phone = param.get("referee_phone").toString();
 		
 		if(checkId(depositId,1))
 			return Constants.getResult("duplicatedId");
@@ -720,7 +728,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		if (!checkrs.get(0).equals("5"))
 			return checkrs;
 
-		return recordDeposit(from, amount, financeType,depositId);
+		return recordDeposit(from, amount, financeType, depositId, referee, referee_phone);
 	}
 
 	@Transactional
