@@ -149,6 +149,12 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 					return Constants.getResult("depositOverlimit", String.valueOf(left));
 			}
 		}
+
+		if (referee.equals(""))
+			referee = "null";
+		
+		if (referee_phone.equals(""))
+			referee = "null";
 	
 		if (!withdraw_time_limit.equals("")) {
 			String dataformat = "%Y-%m-%d %H:%i:%s";
