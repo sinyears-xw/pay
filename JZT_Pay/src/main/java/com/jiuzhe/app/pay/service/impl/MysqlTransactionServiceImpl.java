@@ -709,7 +709,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 	
 		long amount = Long.parseLong(param.get("amount").toString());
 		if (amount <= 0)
-			return Constants.getResult("depositAmountError");
+			return Constants.getResult("depositAmountError", String.valueOf(amount));
 	
 		String from = param.get("user_from").toString();
 		Map userAccount = getUserAccountInfo(from);

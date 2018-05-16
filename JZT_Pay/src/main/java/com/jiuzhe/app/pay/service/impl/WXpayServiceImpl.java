@@ -104,8 +104,11 @@ public class WXpayServiceImpl implements WXpayService {
     }
 
     private String GetSign(Map<String,String> param) {  
-        String StringA =  formatUrlMap(param, false, false);  
-        String stringSignTemp = Md5Util.MD5(StringA+"&key="+WXpayUtil.app_secret).toUpperCase();  
+        String StringA =  formatUrlMap(param, false, false);
+        logger.info(StringA);
+        logger.info(StringA + "&key="+WXpayUtil.app_secret);
+        String stringSignTemp = Md5Util.MD5(StringA+"&key="+WXpayUtil.app_secret).toUpperCase();
+        logger.info(stringSignTemp); 
         return stringSignTemp;  
      }
 
@@ -115,7 +118,7 @@ public class WXpayServiceImpl implements WXpayService {
         // 从request中取得输入流  
         // 读取输入流  
         SAXReader reader = new SAXReader();  
-        Document document = reader.read(strxml);  
+        Document document = reader.read(new ByteArrayInputStream(strxml.getBytes("UTF-8")));  
         // 得到xml根元素  
         Element root = document.getRootElement();  
         // 得到根元素的所有子节点  
@@ -128,7 +131,7 @@ public class WXpayServiceImpl implements WXpayService {
     }  
 
 	public List<String> getOrder(String outtradeno, long amount, String body, String notify_url, String ip) throws Exception{
-		Map<String,String> param = new HashMap<String,String>();  
+		    Map<String,String> param = new HashMap<String,String>();  
         param.put("appid", WXpayUtil.app_id);  
         param.put("mch_id", WXpayUtil.merchant_ID);  
         param.put("nonce_str",NonceStr());  
@@ -140,9 +143,8 @@ public class WXpayServiceImpl implements WXpayService {
         param.put("trade_type", "APP");  
           
         String sign = GetSign(param);
-        String xml = GetMapToXML(param);
         param.put("sign", sign);
-        
+        String xml = GetMapToXML(param);
         logger.info(sign);
         logger.info(xml);
         String res = httpsRequest(WXpayUtil.url_unifiedorder,"POST",xml);

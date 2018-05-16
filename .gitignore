@@ -3,3 +3,4 @@ lib/
 target/
 logs/
 *.properties
+PayApplication.java

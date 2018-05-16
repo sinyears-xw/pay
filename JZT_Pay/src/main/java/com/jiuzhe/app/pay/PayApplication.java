@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import org.springframework.context.annotation.Bean;
 
-@EnableDiscoveryClient
+//@EnableDiscoveryClient
 @EnableTransactionManagement
 @SpringBootApplication
 public class PayApplication extends SpringBootServletInitializer {
