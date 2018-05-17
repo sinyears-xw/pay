@@ -74,7 +74,7 @@ public class MainController {
     private Map<String,String> getWeChatPayReturn(HttpServletRequest request) {
     	try {
             InputStream inStream = request.getInputStream();
-            int _buffer_size = 1024;
+            int _buffer_size = 4096;
             if (inStream != null) {
                 ByteArrayOutputStream outStream = new ByteArrayOutputStream();
                 byte[] tempBytes = new byte[_buffer_size];
@@ -172,15 +172,22 @@ public class MainController {
 			Map<String,String> params = getWeChatPayReturn(request);
 			if (params != null) {
 				logger.info(params);
-				// if (params.get("trade_status").equals("TRADE_SUCCESS")) {
-				// 	long amount = Math.round(Double.parseDouble(params.get("total_amount"))*100);
-				// 	List<String> rs = mysqlTx.updateDepositStatus(params.get("out_trade_no"),amount);
-				// 	if (!rs.get(0).equals("13")) {
-				// 		logger.error("-----------------------------------");
-				// 		logger.error("updateDepositStatus Failed:" + rs.get(1));
-				// 		logger.error(params);
-				// 	}
-				// }
+
+				if (!params.get("return_code").equals("SUCCESS")) {
+					logger.error(params.get("return_msg"));
+				}
+
+				if (!params.get("result_code").equals("SUCCESS")) {
+					logger.error(params.get("err_code_des"));
+				}
+			
+				long amount = Long.parseLong(params.get("cash_fee"));
+				List<String> rs = mysqlTx.updateDepositStatus(params.get("out_trade_no"),amount);
+				if (!rs.get(0).equals("13")) {
+					logger.error("-----------------------------------");
+					logger.error("updateDepositStatus Failed:" + rs.get(1));
+					logger.error(params);
+				}
 				
 			} else {
 				logger.error("params is null");
