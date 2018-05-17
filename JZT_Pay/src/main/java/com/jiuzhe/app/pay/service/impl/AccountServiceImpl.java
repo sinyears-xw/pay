@@ -301,7 +301,7 @@ public class AccountServiceImpl implements AccountService{
 			return Constants.getResult("accountNotFound",id);
 
 		ObjectMapper mapper = new ObjectMapper();
-		String sql = String.format("select amount,to_pay_dt,current_installments,installments_num,promotions_type, floor(amount * (100 + discount) /100/installments_num *10) / 10 cashback from deposit where user_id = '%s' and promotions_type != 1 and succeeded = 1 order by time_succeeded desc",id);
+		String sql = String.format("select amount,to_pay_dt,current_installments,installments_num,promotions_type, floor(amount * (100 + discount) /100/installments_num) cashback from deposit where user_id = '%s' and promotions_type != 1 and succeeded = 1 order by time_succeeded desc",id);
 		List<Map<String, Object>> products = jdbcTemplate.queryForList(sql);
 		List<String> rs = getpromotion();
 		List<Map> promotionlist = null;
