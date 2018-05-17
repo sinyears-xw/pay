@@ -1,6 +1,5 @@
 package com.jiuzhe.app.pay.service.impl;
 
-import java.sql.*;
 import java.util.*;
 import java.io.*;
 import java.net.URLEncoder;
@@ -145,8 +144,6 @@ public class WXpayServiceImpl implements WXpayService {
         String sign = GetSign(param);
         param.put("sign", sign);
         String xml = GetMapToXML(param);
-        logger.info(sign);
-        logger.info(xml);
         String res = httpsRequest(WXpayUtil.url_unifiedorder,"POST",xml);
         Map<String, String> maprs = parseXml(res);
         logger.info(maprs);
@@ -156,7 +153,21 @@ public class WXpayServiceImpl implements WXpayService {
         if (!maprs.get("result_code").equals("SUCCESS"))
         	return Constants.getResult("wxpayError", maprs.get("err_code_des"));
 
-        return Constants.getResult("wxpayPending", maprs.get("prepay_id"));
+        Map<String,String> order = new HashMap<String,String>();
+        order.put("appid", WXpayUtil.app_id);
+        order.put("partnerid", WXpayUtil.merchant_ID);
+        order.put("prepayid", maprs.get("prepay_id"));
+        order.put("package", "Sign=WXPay");
+        order.put("noncestr", NonceStr());
+        order.put("timestamp", String.valueOf(new Date().getTime()/1000));
+
+        String ordersign = GetSign(order);
+        order.put("sign", ordersign);
+        ObjectMapper mapper = new ObjectMapper();
+        String orderstring = mapper.writeValueAsString(order);
+        logger.info(orderstring);
+
+        return Constants.getResult("wxpayPending",orderstring);
 	}
 
 	private String httpsRequest(String requestUrl, String requestMethod, String outputStr) {    

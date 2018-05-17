@@ -154,7 +154,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 			referee = "null";
 		
 		if (referee_phone.equals(""))
-			referee = "null";
+			referee_phone = "null";
 	
 		if (!withdraw_time_limit.equals("")) {
 			String dataformat = "%Y-%m-%d %H:%i:%s";
