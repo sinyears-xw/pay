@@ -104,10 +104,7 @@ public class WXpayServiceImpl implements WXpayService {
 
     private String GetSign(Map<String,String> param) {  
         String StringA =  formatUrlMap(param, false, false);
-        logger.info(StringA);
-        logger.info(StringA + "&key="+WXpayUtil.app_secret);
-        String stringSignTemp = Md5Util.MD5(StringA+"&key="+WXpayUtil.app_secret).toUpperCase();
-        logger.info(stringSignTemp); 
+        String stringSignTemp = Md5Util.MD5(StringA+"&key="+WXpayUtil.app_secret).toUpperCase(); 
         return stringSignTemp;  
      }
 
