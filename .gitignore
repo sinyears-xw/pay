@@ -4,3 +4,5 @@ target/
 logs/
 *.properties
 PayApplication.java
+WXpayUtil.java
+AlipayUtil.java
