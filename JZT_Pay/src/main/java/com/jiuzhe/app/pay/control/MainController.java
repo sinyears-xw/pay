@@ -223,15 +223,18 @@ public class MainController {
 	public String wxwebhookdeposit(HttpServletRequest request, HttpServletResponse response) {
 		try {
 			Map<String,String> params = getWeChatPayReturn(request);
+			String rswx = "<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>";
 			if (params != null) {
 				logger.info(params);
 
 				if (!params.get("return_code").equals("SUCCESS")) {
 					logger.error(params.get("return_msg"));
+					return rswx;
 				}
 
 				if (!params.get("result_code").equals("SUCCESS")) {
 					logger.error(params.get("err_code_des"));
+					return rswx;
 				}
 			
 				long amount = Long.parseLong(params.get("cash_fee"));
@@ -246,7 +249,52 @@ public class MainController {
 				logger.error("params is null");
 				return "failed";
 			}
-			return "<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>";
+			return rswx;
+		} catch (Exception e) {
+			logger.error(e);
+			return "failed";
+		}	
+	}
+
+	@RequestMapping(value = "/webhook/wx/charge", method = RequestMethod.POST)
+	public String wxwebhookcharge(HttpServletRequest request, HttpServletResponse response) {
+		try {
+			Map<String,String> params = getWeChatPayReturn(request);
+			String rswx = "<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>";
+			if (params != null) {
+
+				if (!params.get("return_code").equals("SUCCESS")) {
+					logger.error(params.get("return_msg"));
+					return rswx;
+				}
+
+				if (!params.get("result_code").equals("SUCCESS")) {
+					logger.error(params.get("err_code_des"));
+					return rswx;
+				}
+
+				long amount = Long.parseLong(params.get("cash_fee"));
+				String out_trade_no = params.get("out_trade_no");
+				List<String> rs = mysqlTx.createDepositInCharge(out_trade_no,amount);
+				if (!rs.get(0).equals("13")) {
+					logger.error("-----------------------------------");
+					logger.error("createDepositInCharge Failed:" + rs.get(1));
+					logger.error(params);
+					return "failed";
+				}
+				rs = mysqlTx.updateChargeStatus(out_trade_no);
+				if (!rs.get(0).equals("19")) {
+					logger.error("-----------------------------------");
+					logger.error("updateChargeStatus Failed:" + rs.get(1));
+					logger.error(params);
+				}
+			
+				
+			} else {
+				logger.error("params is null");
+				return "failed";
+			}
+			return rswx;
 		} catch (Exception e) {
 			logger.error(e);
 			return "failed";
@@ -300,6 +348,28 @@ public class MainController {
 			List<String> checkrs = mysqlTx.doDeposit(paramMap);
 			if (checkrs.get(0).equals("13")) {
 				return wxpayService.getOrder(checkrs.get(2),Long.parseLong(checkrs.get(4)),body,WXpayUtil.notify_url_deposit,ip);
+			}
+
+			return checkrs;
+		} catch (Exception e) {
+			logger.error(e);
+			return Constants.getResult("serverException");
+		}
+	}
+
+	@RequestMapping(value = "/chargewx/{randomKey}", method = RequestMethod.POST)
+	@ResponseBody
+	public List<String> chargewx(@PathVariable String randomKey, @RequestBody Map param) {
+		try {
+			Map paramMap = mysqlTx.decodeRequestBody(randomKey, param);
+			if (paramMap == null)
+				return Constants.getResult("decodeError");
+
+			String body = paramMap.get("body").toString();
+			String ip = paramMap.get("ip").toString();
+			List<String> checkrs = mysqlTx.doCharge(paramMap);
+			if (checkrs.get(0).equals("50")) {
+				return wxpayService.getOrder(checkrs.get(2),Long.parseLong(checkrs.get(4)),body,WXpayUtil.notify_url_charge,ip);
 			}
 
 			return checkrs;

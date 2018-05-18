@@ -152,7 +152,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 
 		if (referee.equals(""))
 			referee = "null";
-		
+
 		if (referee_phone.equals(""))
 			referee_phone = "null";
 	
@@ -359,7 +359,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 			jdbcTemplate.update(String.format("insert into charges(user_id,order_id,status,amount,deposit_amount,merchant_id) values('%s','%s',%d,%d,%d,'%s')",from,orderId,3,amount,depositAmount,to));
 		
 		double aliamount = ((double)(amount + depositAmount)) / 100;
-		return Constants.getResult("createPayOrderSucceed",orderId,String.valueOf(aliamount));
+		return Constants.getResult("createPayOrderSucceed",orderId,String.valueOf(aliamount),String.valueOf(amount + depositAmount));
 	}
 
 	@Transactional
