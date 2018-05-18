@@ -57,9 +57,9 @@ public class MainController {
         // 获取请求主机IP地址,如果通过代理进来，则透过防火墙获取真实IP地址  
   
         String ip = request.getHeader("X-Forwarded-For");  
-        if (logger.isInfoEnabled()) {  
-            logger.info("getIpAddress(HttpServletRequest) - X-Forwarded-For - String ip=" + ip);  
-        }  
+        // if (logger.isInfoEnabled()) {  
+        //     logger.info("getIpAddress(HttpServletRequest) - X-Forwarded-For - String ip=" + ip);  
+        // }  
   
         if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {  
             if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {  
