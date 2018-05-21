@@ -135,7 +135,7 @@ public class WXpayServiceImpl implements WXpayService {
         param.put("out_trade_no",outtradeno);  
         param.put("total_fee", amount+"");  
         param.put("spbill_create_ip", ip);
-        param.put("notify_url", WXpayUtil.notify_url_deposit);  
+        param.put("notify_url",notify_url);  
         param.put("trade_type", "APP");  
           
         String sign = GetSign(param);
