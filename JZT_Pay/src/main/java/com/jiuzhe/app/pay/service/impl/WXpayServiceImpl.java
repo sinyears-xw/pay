@@ -143,7 +143,7 @@ public class WXpayServiceImpl implements WXpayService {
         String xml = GetMapToXML(param);
         String res = httpsRequest(WXpayUtil.url_unifiedorder,"POST",xml);
         Map<String, String> maprs = parseXml(res);
-        logger.info(maprs);
+        // logger.info(maprs);
 
         if (!maprs.get("return_code").equals("SUCCESS"))
         	return Constants.getResult("wxpayError", maprs.get("return_msg"));
@@ -162,7 +162,7 @@ public class WXpayServiceImpl implements WXpayService {
         order.put("sign", ordersign);
         ObjectMapper mapper = new ObjectMapper();
         String orderstring = mapper.writeValueAsString(order);
-        logger.info(orderstring);
+        // logger.info(orderstring);
 
         return Constants.getResult("wxpayPending",orderstring);
 	}

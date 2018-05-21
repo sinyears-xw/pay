@@ -158,7 +158,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 	
 		if (!withdraw_time_limit.equals("")) {
 			String dataformat = "%Y-%m-%d %H:%i:%s";
-			String sql = String.format("insert into deposit(id,user_id,amount,available_amount,created,installments_num,period,promotions_type,withdraw_interval_type,withdraw_time_limit,discount,referee,referee_phone) values(%d,'%s', %d, %d, now(),%d,%d,'%s','%s',str_to_date('%s', '%s'),%d,%s,%s)",Long.parseLong(depositId),from,amount,available_amount,installments,period,financeType,withdraw_interval_type,withdraw_time_limit,dataformat,discount,referee,referee_phone);
+			String sql = String.format("insert into deposit(id,user_id,amount,available_amount,created,installments_num,period,promotions_type,withdraw_interval_type,withdraw_time_limit,discount,referee,referee_phone) values(%d,'%s', %d, %d, now(),%d,%d,'%s','%s',str_to_date('%s', '%s'),%d,'%s','%s')",Long.parseLong(depositId),from,amount,available_amount,installments,period,financeType,withdraw_interval_type,withdraw_time_limit,dataformat,discount,referee,referee_phone);
 			jdbcTemplate.update(sql);
 		} else {
 			// logger.info(Long.parseLong(depositId));
@@ -171,7 +171,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 			// logger.info(discount);
 			// logger.info(withdraw_interval_type);
 			// logger.info(financeType);
-			String sql = String.format("insert into deposit(id,user_id,amount,available_amount,created,installments_num,period,promotions_type,withdraw_interval_type,discount,withdraw_time_limit,referee,referee_phone) values(%d,'%s', %d, %d, now(),%d,%d,'%s','%s',%d,date_add(now(), interval 10 YEAR),%s,%s)",Long.parseLong(depositId),from,amount,available_amount,installments,period,financeType,withdraw_interval_type,discount,referee,referee_phone);
+			String sql = String.format("insert into deposit(id,user_id,amount,available_amount,created,installments_num,period,promotions_type,withdraw_interval_type,discount,withdraw_time_limit,referee,referee_phone) values(%d,'%s', %d, %d, now(),%d,%d,'%s','%s',%d,date_add(now(), interval 10 YEAR),'%s','%s')",Long.parseLong(depositId),from,amount,available_amount,installments,period,financeType,withdraw_interval_type,discount,referee,referee_phone);
 
 			jdbcTemplate.update(sql);
 		}
