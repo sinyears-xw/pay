@@ -594,6 +594,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		int paid = 0;
 		List<String> rs = null;
 		String aliparamString = "";
+		deductAmount(from,trans_incomes,amount);
 		switch(channel) {
 			case "alipay":
 				Map aliparam = new HashMap<String,String>();
@@ -620,13 +621,13 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		}
 
 		if (paid == 1) {
-			deductAmount(from,trans_incomes,amount);
 			String sql = String.format("insert into withdrawals(id,user_id,fee,settle_account_id,status,amount,description,channel) values(%d,'%s', %s, %s,'succeeded',%d,'%s','%s')",Long.parseLong(withdrawId), from, fee, settle_account_id, amount, description,channel);
 			jdbcTemplate.update(sql);
-
 			return Constants.getResult("withdrawSucceed");
 		}
-
+		
+		String sql = String.format("update account set available_balance = available_balance + %d, updt = now(), total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id='%s'",amount,amount,amount,from);
+		jdbcTemplate.update(sql);
 		return rs;
 	}
 
