@@ -230,10 +230,10 @@ public class AccountServiceImpl implements AccountService{
 
 	public List<String> getBillInfo(String id, int page, int size) throws IOException {
 		try {
-			String sql = String.format("select * from(select amount,time_succeeded recordDT, 'deposit' recordType, promotions_type addition, '' transtype from deposit where user_id = '%s' and succeeded = 1 and promotions_type = 1\n" +
+			String sql = String.format("select * from( select amount,created recordDT, 'withdraw' recordType, status addition, '' transtype from withdrawals where user_id = '%s'\n" +
 "union all select amount,finished recordDT,'outflow' recordType,user_to addition, type transtype from transaction where user_from = '%s'\n" +
 "union all select amount,finished recordDT,'inflow' recordType,user_from addition, type transtype from transaction where user_to = '%s'\n" +
-"union all select amount,created recordDT, 'withdraw' recordType, status addition, '' transtype from withdrawals where user_id = '%s'\n" +
+"union all select amount,time_succeeded recordDT, 'deposit' recordType, promotions_type addition, '' transtype from deposit where user_id = '%s' and succeeded = 1 and promotions_type = 1 \n" +
 "union all select amount,return_time recordDT, 'cashback' recordType,deposit_id addition, '' transtype from cashback where user_id = '%s'\n" +
 ")A order by A.recordDt desc limit %d,%d",id,id,id,id,id,page*size,size);
 			List bill = jdbcTemplate.queryForList(sql);
