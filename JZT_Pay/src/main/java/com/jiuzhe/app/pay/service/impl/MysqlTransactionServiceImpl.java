@@ -548,6 +548,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 
 	@Transactional
 	public List<String> doWithdraw(Map param) {
+		// logger.info(param);
 		String withdrawId = param.get("id").toString();
 		if(checkId(withdrawId,3))
 			return Constants.getResult("duplicatedId");
@@ -584,7 +585,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 			return Constants.getResult("settleAccountError");
 
 		Object payeeAccountObj = settleAccountNum.get("recipient_account");
-		if (payeeAccountObj == null || StringUtil.isEmpty(payeeAccountObj.toString()))
+		if (payeeAccountObj == null || StringUtil.isEmpty(payeeAccountObj.toString())) 
 			return Constants.getResult("settleAccountError");
 
 		Object payeeNameObj = settleAccountNum.get("recipient_name");

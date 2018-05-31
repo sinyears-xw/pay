@@ -198,6 +198,7 @@ public class AccountServiceImpl implements AccountService{
 
 	@Transactional
 	public List<String> getBackPasswd(Map param) {
+		// logger.info(param);
 		String userId = param.get("user_id").toString();
 		if (StringUtil.isEmpty(userId))
 			return Constants.getResult("argsError","user_id");
