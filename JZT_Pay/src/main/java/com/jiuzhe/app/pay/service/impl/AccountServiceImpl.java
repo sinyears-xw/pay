@@ -246,6 +246,21 @@ public class AccountServiceImpl implements AccountService{
 		}
 	}
 
+	public List<String> getMBillInfo(String id, int page, int size) throws IOException {
+		try {
+			String sql = String.format("select * from( select amount,created recordDT, 'withdraw' recordType, status addition, '' transtype from withdrawals where user_id = '%s'\n" +
+// "union all select amount,finished recordDT,'outflow' recordType,user_to addition, type transtype from transaction where user_from = '%s'\n" +
+"union all select amount,updt recordDT,'charges' recordType,order_id addition, '' transtype from transaction where user_to = '%s'\n" +
+")A order by A.recordDt desc limit %d,%d",id,id,id,id,id,page*size,size);
+			List bill = jdbcTemplate.queryForList(sql);
+			ObjectMapper mapper = new ObjectMapper();
+			String billJson =mapper.writeValueAsString(bill);
+			return Constants.getResult("querySucceed",billJson);
+		} catch (EmptyResultDataAccessException e) {
+			return Constants.getResult("querySucceed");
+		}
+	}
+
 	public List<String> getpromotion() throws IOException {
 		String deposit_rule = rt.opsForValue().get("deposit_rule");
 		if (deposit_rule == null) {

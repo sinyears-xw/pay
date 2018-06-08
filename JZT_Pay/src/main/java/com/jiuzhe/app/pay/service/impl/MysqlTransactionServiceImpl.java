@@ -452,9 +452,9 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		}
 
 		deductAmount(from,trans_incomes,amount + depositAmount);
-		jdbcTemplate.update(String.format("update account set available_balance = available_balance + %d, total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id = '%s'", amount, amount, amount,to));
+		jdbcTemplate.update(String.format("update account set available_balance = available_balance + %d, total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id = '%s'", amount, amount, amount,admin));
 		
-		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,1)",idWorker.nextId(),from, to, amount));
+		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,1)",idWorker.nextId(),from, admin, amount));
 
 		if (newOrder)
 			jdbcTemplate.update(String.format("insert into charges(user_id,order_id,status,amount,deposit_amount,merchant_id) values('%s','%s',%d,%d,%d,'%s')",from,orderId,1,amount,depositAmount,to));
@@ -508,9 +508,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 			String missed = getFirstNotExist(ids, userAccounts);
 			if (missed == null)
 				return Constants.getResult("accountSearchError");
-			checkrs = new ArrayList<>(Constants.getResult("accountNotFound")); 
-			checkrs.add(missed);
-			return checkrs;
+			return Constants.getResult("accountNotFound", missed);
 		}
 
 		//账户校验-支付密码/是否禁用
@@ -701,7 +699,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 			sql = String.format("update account set total_balance = total_balance + %d, updt=now() where user_id = '%s'", amount, from);
 			jdbcTemplate.update(sql);
 		}
-		sql = String.format("update deposit set amount = %d,available_amount = %d,succeeded = 1,time_succeeded = now(), updt = now(),status = 1, to_pay_dt = date_add(now(), interval %s %s) where id = %s",amount,available_amount,period,withdraw_interval_type,id);
+		sql = String.format("update deposit set amount = %d,available_amount = %d,succeeded = 1,time_succeeded = date_add(now(), interval -1 second), updt = now(),status = 1, to_pay_dt = date_add(now(), interval %s %s) where id = %s",amount,available_amount,period,withdraw_interval_type,id);
 		
 		jdbcTemplate.update(sql);
 		return Constants.getResult("depositSucceed");
@@ -740,7 +738,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 	}
 
 	@Transactional
-	public List<String> doRefund(String orderId, long amount, String userId) {
+	public List<String> doRefund(String orderId, long amount, long depositAmount, String userId, String merchantId) {
 		if(checkId(orderId,5))
 			return Constants.getResult("duplicatedId");
 
@@ -752,11 +750,12 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		if (!checkrs.get(0).equals("5"))
 			return checkrs;
 
-		jdbcTemplate.update(String.format("update account set available_balance = available_balance + %d, total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id = '%s'", amount, amount, amount,userId));
-		jdbcTemplate.update(String.format("update account set available_balance = available_balance - %d, total_balance = total_balance - %d, trans_incomes = trans_incomes - %d where user_id = '%s'", amount, amount, amount,admin));
+		jdbcTemplate.update(String.format("update account set available_balance = available_balance + %d, total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id = '%s'", depositAmount, depositAmount, depositAmount,userId));
+		jdbcTemplate.update(String.format("update account set available_balance = available_balance + %d, total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id = '%s'", amount, amount, amount,merchantId));
+		jdbcTemplate.update(String.format("update account set available_balance = available_balance - %d, total_balance = total_balance - %d, trans_incomes = trans_incomes - %d where user_id = '%s'", depositAmount + amount, depositAmount + amount, depositAmount + amount,admin));
 		jdbcTemplate.update(String.format("insert into refund(order_id,user_id,amount,admin) values('%s','%s',%d,'%s')",orderId,userId,amount,admin));
-		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,3)",idWorker.nextId(),admin, userId, amount));
-
+		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,3)",idWorker.nextId(),admin, userId, depositAmount));
+		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,1)",idWorker.nextId(),admin, merchantId, amount));
 		return Constants.getResult("refundSucceed");
 	}
 
@@ -774,11 +773,9 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 			return checkrs;
 
 		jdbcTemplate.update(String.format("update account set available_balance = available_balance + %d, total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id = '%s'", amount+depositAmount, amount+depositAmount, amount+depositAmount,userId));
-		jdbcTemplate.update(String.format("update account set available_balance = available_balance - %d, total_balance = total_balance - %d, trans_incomes = trans_incomes - %d where user_id = '%s'", depositAmount, depositAmount, depositAmount,admin));
-		jdbcTemplate.update(String.format("update account set available_balance = available_balance - %d, total_balance = total_balance - %d, trans_incomes = trans_incomes - %d where user_id = '%s'", amount, amount, amount,merchantId));
+		jdbcTemplate.update(String.format("update account set available_balance = available_balance - %d, total_balance = total_balance - %d, trans_incomes = trans_incomes - %d where user_id = '%s'", amount+depositAmount, amount+depositAmount, amount+depositAmount,admin));
 		jdbcTemplate.update(String.format("insert into cancel_order(order_id,user_id,amount,admin,deposit_amount,merchant_id) values('%s','%s',%d,'%s',%d,'%s')",orderId,userId,amount,admin,depositAmount,merchantId));
-		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,3)",idWorker.nextId(),admin, userId, depositAmount));
-		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,5)",idWorker.nextId(),merchantId, userId, amount));
+		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,5)",idWorker.nextId(),admin, userId, amount + depositAmount));
 		return Constants.getResult("orderCancelled");
 	}
 }

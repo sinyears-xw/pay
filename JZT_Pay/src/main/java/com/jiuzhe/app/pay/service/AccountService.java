@@ -11,6 +11,7 @@ public interface AccountService {
 	public List<String> getBackPasswd(Map param);
 	public List<String> getAccountInfo(String id) throws IOException;
 	public List<String> getBillInfo(String id, int page, int size) throws IOException;
+	public List<String> getMBillInfo(String id, int page, int size) throws IOException;
 	public List<String> checkPasswd(Map param);
 	public List<String> getpromotion() throws IOException;
 	public List<String> getfrozenasset(String id) throws IOException;

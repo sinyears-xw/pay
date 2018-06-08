@@ -142,6 +142,21 @@ public class AccountController {
 		}	
 	}
 
+	@RequestMapping(value = "/getmbillinfo/{id}/{page}/{size}", method = RequestMethod.GET)
+	@ResponseBody
+	public List<String> getMBillInfo(@PathVariable String id, @PathVariable int page, @PathVariable int size) {
+		try {
+			if (StringUtil.isEmpty(id))
+				return Constants.getResult("argsError","id");
+			
+			return accountService.getMBillInfo(id, page, size);
+
+		} catch (Exception e) {
+			logger.error(e);
+			return Constants.getResult("serverException");
+		}	
+	}
+
 	@RequestMapping(value = "/getpromotion", method = RequestMethod.GET)
 	@ResponseBody
 	public List<String> getpromotion() {

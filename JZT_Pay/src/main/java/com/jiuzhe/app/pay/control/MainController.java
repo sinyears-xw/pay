@@ -443,23 +443,25 @@ public class MainController {
 		}
 	}
 
-	@RequestMapping(value = "/forbidden/refund/{orderId}/{amount}/{userId}", method = RequestMethod.GET)
+	//退押金
+	@RequestMapping(value = "/forbidden/refund/{orderId}/{amount}/{depositAmount}/{userId}/{merchantId}", method = RequestMethod.GET)
 	@ResponseBody
-	public List<String> refund(@PathVariable String orderId, @PathVariable long amount, @PathVariable String userId) {
+	public List<String> refund(@PathVariable String orderId, @PathVariable long amount, @PathVariable long depositAmount, @PathVariable String userId, @PathVariable String merchantId) {
 		try {
-			if (amount < 0 || StringUtil.isEmpty(orderId) || StringUtil.isEmpty(userId))
+			if (amount < 0 || depositAmount < 0 || StringUtil.isEmpty(orderId) || StringUtil.isEmpty(userId) || StringUtil.isEmpty(merchantId))
 				return Constants.getResult("argsError");
 
-			return mysqlTx.doRefund(orderId,amount,userId);
+			return mysqlTx.doRefund(orderId,amount,depositAmount,userId,merchantId);
 		} catch (Exception e) {
 			logger.error(e);
 			return Constants.getResult("serverException");
 		}
 	}
 
+	//取消订单
 	@RequestMapping(value = "/forbidden/cancelOrder/{orderId}/{amount}/{depositAmount}/{userId}/{merchantId}", method = RequestMethod.GET)
 	@ResponseBody
-	public List<String> refund(@PathVariable String orderId, @PathVariable long amount,@PathVariable long depositAmount,@PathVariable String userId,@PathVariable String merchantId) {
+	public List<String> cancelorder(@PathVariable String orderId, @PathVariable long amount,@PathVariable long depositAmount,@PathVariable String userId,@PathVariable String merchantId) {
 		try {
 			if (amount < 0 || StringUtil.isEmpty(orderId) || StringUtil.isEmpty(userId) || depositAmount < 0 || StringUtil.isEmpty(merchantId))
 				return Constants.getResult("argsError");
@@ -486,43 +488,43 @@ public class MainController {
 	// }
 
 
-	private String getStringRandom(int length) {  
+	// private String getStringRandom(int length) {  
 
-        String val = "";  
-        Random random = new Random();        
-        //length为几位密码 
-        for(int i = 0; i < length; i++) {          
-            String charOrNum = random.nextInt(2) % 2 == 0 ? "char" : "num";  
-            //输出字母还是数字  
-            if( "char".equalsIgnoreCase(charOrNum) ) {  
-                //输出是大写字母还是小写字母  
-                int temp = random.nextInt(2) % 2 == 0 ? 65 : 97;  
-                val += (char)(random.nextInt(26) + temp);  
-            } else if( "num".equalsIgnoreCase(charOrNum) ) {  
-                val += String.valueOf(random.nextInt(10));  
-            }  
-        }  
-        return val;  
-    }  
+ //        String val = "";  
+ //        Random random = new Random();        
+ //        //length为几位密码 
+ //        for(int i = 0; i < length; i++) {          
+ //            String charOrNum = random.nextInt(2) % 2 == 0 ? "char" : "num";  
+ //            //输出字母还是数字  
+ //            if( "char".equalsIgnoreCase(charOrNum) ) {  
+ //                //输出是大写字母还是小写字母  
+ //                int temp = random.nextInt(2) % 2 == 0 ? 65 : 97;  
+ //                val += (char)(random.nextInt(26) + temp);  
+ //            } else if( "num".equalsIgnoreCase(charOrNum) ) {  
+ //                val += String.valueOf(random.nextInt(10));  
+ //            }  
+ //        }  
+ //        return val;  
+ //    }  
 
-	@RequestMapping(value = "/encode", method = RequestMethod.POST)
-	public Map test1(@RequestBody Map param) {
-		try {
-			String halfkey = getStringRandom(12);
-			String key = halfkey + halfsecret;
-			String en = DESUtil.encode(key,param.get("data").toString());
-			String de = DESUtil.decode(key, en);
+	// @RequestMapping(value = "/encode", method = RequestMethod.POST)
+	// public Map test1(@RequestBody Map param) {
+	// 	try {
+	// 		String halfkey = getStringRandom(12);
+	// 		String key = halfkey + halfsecret;
+	// 		String en = DESUtil.encode(key,param.get("data").toString());
+	// 		String de = DESUtil.decode(key, en);
 			
-			Map rs = new HashMap<String, String>();
-			rs.put("key", halfkey);
-			rs.put("encode", en);
-			rs.put("decode", de);
-			rs.put("encode-length", en.length());
-			return rs;
-		} catch (Exception e) {
-			return null;
-		}
-	}
+	// 		Map rs = new HashMap<String, String>();
+	// 		rs.put("key", halfkey);
+	// 		rs.put("encode", en);
+	// 		rs.put("decode", de);
+	// 		rs.put("encode-length", en.length());
+	// 		return rs;
+	// 	} catch (Exception e) {
+	// 		return null;
+	// 	}
+	// }
 
 	@RequestMapping(value = "/generateId", method = RequestMethod.GET)
 	public List<String> generateId() {
@@ -533,4 +535,44 @@ public class MainController {
 			return Constants.getResult("IDgeneratedFailed");
 		}
 	}
+
+	// @RequestMapping(value = "/list", method = RequestMethod.GET)
+	// public String list() {
+		
+	// 		List<Map> prices = new ArrayList<Map>();
+	// 		Map param1 = new HashMap<String,String>();
+	// 		Map param2 = new HashMap<String,String>();
+	// 		Map param3 = new HashMap<String,String>();
+	// 		Map param4 = new HashMap<String,String>();
+	// 		Map param5 = new HashMap<String,String>();
+	// 		Map param6 = new HashMap<String,String>();
+	// 		Map param7 = new HashMap<String,String>();
+
+	// 		param1.put("date","2018-06-08");
+	// 		param1.put("price",8000);
+	// 		prices.add(param1);
+
+	// 		param2.put("date","2018-06-09");
+	// 		param2.put("price",8000);
+	// 		prices.add(param2);
+
+	// 		param3.put("date","2018-06-10");
+	// 		param3.put("price",5452);
+	// 		prices.add(param3);
+
+	// 		param4.put("date","2018-07-10");
+	// 		param4.put("price",45);
+	// 		prices.add(param4);
+
+	// 		param5.put("date","2018-08-10");
+	// 		param5.put("price",121);
+	// 		prices.add(param5);
+
+	// 		System.out.println(prices);
+	// 		List rs = DatePriceUtil.getHolidayPrice(prices);
+	// 		System.out.println(rs);
+
+	// 		return "ok";
+		
+	// }
 }
