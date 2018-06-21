@@ -144,12 +144,12 @@ public class AccountController {
 
 	@RequestMapping(value = "/getmwithdraw/{id}/{page}/{size}", method = RequestMethod.GET)
 	@ResponseBody
-	public List<String> getMBillInfo(@PathVariable String id, @PathVariable int page, @PathVariable int size) {
+	public List<String> getMerchantWithdraw(@PathVariable String id, @PathVariable int page, @PathVariable int size) {
 		try {
 			if (StringUtil.isEmpty(id))
 				return Constants.getResult("argsError","id");
 			
-			return accountService.getMBillInfo(id, page, size);
+			return accountService.getMerchantWithdraw(id, page, size);
 
 		} catch (Exception e) {
 			logger.error(e);
