@@ -142,7 +142,7 @@ public class AccountController {
 		}	
 	}
 
-	@RequestMapping(value = "/getmbillinfo/{id}/{page}/{size}", method = RequestMethod.GET)
+	@RequestMapping(value = "/getmwithdraw/{id}/{page}/{size}", method = RequestMethod.GET)
 	@ResponseBody
 	public List<String> getMBillInfo(@PathVariable String id, @PathVariable int page, @PathVariable int size) {
 		try {
