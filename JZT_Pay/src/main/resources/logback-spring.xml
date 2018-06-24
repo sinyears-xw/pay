@@ -38,7 +38,7 @@
         </layout>
     </appender>
 
-    <root level="ERROR">  
+    <root level="INFO">  
         <appender-ref ref="console" />  
         <appender-ref ref="rootlogFile" />  
     </root>  

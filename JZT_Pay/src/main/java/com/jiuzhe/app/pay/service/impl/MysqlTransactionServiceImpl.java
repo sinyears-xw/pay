@@ -381,8 +381,8 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		Map orderResult = restTemplate.postForObject("http://JZT-HOTEL-CORE/hotelorders/id", postDataOrder,Map.class);
 
 		if (!(orderResult.get("status").toString().equals("0"))) {
-			logger.info("orderId:" + orderId);
-			logger.info(orderResult);
+			logger.error("orderId:" + orderId);
+			logger.error(orderResult);
 			return Constants.getResult("getOrderFailed",orderId);
 		}
 
