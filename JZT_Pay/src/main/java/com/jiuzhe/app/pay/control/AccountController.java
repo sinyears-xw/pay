@@ -168,6 +168,17 @@ public class AccountController {
 		}	
 	}
 
+	@RequestMapping(value = "/getad", method = RequestMethod.GET)
+	@ResponseBody
+	public List<String> getad() {
+		try {
+			return accountService.getad();
+		} catch (Exception e) {
+			logger.error(e);
+			return Constants.getResult("serverException");
+		}	
+	}
+
 	@RequestMapping(value = "/getproductdetail", method = RequestMethod.GET)
 	@ResponseBody
 	public List<String> getproductdetail() {

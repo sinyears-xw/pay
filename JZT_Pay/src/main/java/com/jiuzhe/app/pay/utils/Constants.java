@@ -68,6 +68,7 @@ public class Constants {
             put("notSignedIn", Arrays.asList("60","活动未签到"));
             put("wxpayPending", Arrays.asList("61","微信支付中"));
             put("wxpayError", Arrays.asList("62","微信支付失败"));
+            put("toJsonError", Arrays.asList("63","转换json失败"));
         }
     };
 

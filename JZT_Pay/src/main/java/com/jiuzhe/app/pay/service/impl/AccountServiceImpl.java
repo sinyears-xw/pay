@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.jiuzhe.app.pay.utils.*;
 import java.io.*;
+import com.jiuzhe.app.pay.service.RedisService;
 
 @Service
 public class AccountServiceImpl implements AccountService{
@@ -28,6 +29,9 @@ public class AccountServiceImpl implements AccountService{
 
 	@Autowired
 	private StringRedisTemplate rt;
+
+	@Autowired
+	private RedisService redisService;
 
 	private  Log logger = LogFactory.getLog(this.getClass());
 
@@ -258,28 +262,16 @@ public class AccountServiceImpl implements AccountService{
 		}
 	}
 
-	public List<String> getpromotion() throws IOException {
-		String deposit_rule = rt.opsForValue().get("deposit_rule");
-		if (deposit_rule == null) {
-			List<Map<String, Object>> rules = jdbcTemplate.queryForList("select * from deposit_rule");
-			ObjectMapper mapper = new ObjectMapper();
-			String rulesJson = mapper.writeValueAsString(rules);
-			rt.opsForValue().set("deposit_rule", rulesJson);
-			deposit_rule = rulesJson;
-		}
-		return Constants.getResult("querySucceed",deposit_rule);
+	public List<String> getpromotion() {
+		return redisService.getResult("deposit_rule", "select * from deposit_rule");
 	}
 
-	public List<String> getproductdetail() throws IOException {
-		String productDetail = rt.opsForValue().get("productDetail");
-		if (productDetail == null) {
-			List<Map<String, Object>> details = jdbcTemplate.queryForList("select content from product_detail order by id");
-			ObjectMapper mapper = new ObjectMapper();
-			String detailsJson = mapper.writeValueAsString(details);
-			rt.opsForValue().set("productDetail", detailsJson);
-			productDetail = detailsJson;
-		}
-		return Constants.getResult("querySucceed",productDetail);
+	public List<String> getproductdetail() {
+		return redisService.getResult("productDetail", "select content from product_detail order by id");
+	}
+
+	public List<String> getproductad() {
+		return redisService.getResult("productAD", "select content from product_ad order by id");
 	}
 
 	public List<String> signin(String userId, String hotelId) {
