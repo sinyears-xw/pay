@@ -14,7 +14,7 @@ public interface AccountService {
 	public List<String> getMerchantWithdraw(String id, int page, int size) throws IOException;
 	public List<String> checkPasswd(Map param);
 	public List<String> getpromotion();
-	public List<String> getad();
+	public List<String> getproductad();
 	public List<String> getfrozenasset(String id) throws IOException;
 	public List<String> signin(String userId, String hotelId);
 	public List<String> signincheck(String userId);

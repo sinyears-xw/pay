@@ -625,7 +625,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 			return Constants.getResult("withdrawSucceed");
 		}
 		
-		String sql = String.format("update account set available_balance = available_balance + %d, updt = now(), total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id='%s'",amount,amount,amount,from);
+		String sql = String.format("update account set available_balance = available_balance + %d, updt = now(), total_balance = total_balance + %d, trans_incomes = trans_incomes + %d, withdrawn = withdrawn + %d where user_id='%s'",amount,amount,amount,amount,from);
 		jdbcTemplate.update(sql);
 		return rs;
 	}
