@@ -389,6 +389,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		Map orderData = (Map)orderResult.get("data");
 		long amount = Long.parseLong(orderData.get("skuPrice").toString()) * 100;
 		long depositAmount = Long.parseLong(orderData.get("skuBond").toString()) * 100;
+		long fee = Long.parseLong(orderData.get("skuFee").toString()) * 100;
 	
 		String from = param.get("user_from").toString();
 		String to = param.get("user_to").toString();
@@ -453,11 +454,10 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 
 		deductAmount(from,trans_incomes,amount + depositAmount);
 		jdbcTemplate.update(String.format("update account set available_balance = available_balance + %d, total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id = '%s'", amount, amount, amount,admin));
-		
 		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,1)",idWorker.nextId(),from, admin, amount));
 
 		if (newOrder)
-			jdbcTemplate.update(String.format("insert into charges(user_id,order_id,status,amount,deposit_amount,merchant_id) values('%s','%s',%d,%d,%d,'%s')",from,orderId,1,amount,depositAmount,to));
+			jdbcTemplate.update(String.format("insert into charges(user_id,order_id,status,amount,deposit_amount,merchant_id,fee) values('%s','%s',%d,%d,%d,'%s',%d)",from,orderId,1,amount,depositAmount,to,fee));
 		else
 			jdbcTemplate.update(String.format("update charges set status = 1, updt = now() where order_id = '%s'",orderId));
 		
@@ -738,7 +738,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 	}
 
 	@Transactional
-	public List<String> doRefund(String orderId, long amount, long depositAmount, String userId, String merchantId) {
+	public List<String> doRefund(String orderId, long amount, long depositAmount, String userId, String merchantId, long fee) {
 		if(checkId(orderId,5))
 			return Constants.getResult("duplicatedId");
 
@@ -751,11 +751,11 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 			return checkrs;
 
 		jdbcTemplate.update(String.format("update account set available_balance = available_balance + %d, total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id = '%s'", depositAmount, depositAmount, depositAmount,userId));
-		jdbcTemplate.update(String.format("update account set available_balance = available_balance + %d, total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id = '%s'", amount, amount, amount,merchantId));
-		jdbcTemplate.update(String.format("update account set available_balance = available_balance - %d, total_balance = total_balance - %d, trans_incomes = trans_incomes - %d where user_id = '%s'", depositAmount + amount, depositAmount + amount, depositAmount + amount,admin));
-		jdbcTemplate.update(String.format("insert into refund(order_id,user_id,amount,admin) values('%s','%s',%d,'%s')",orderId,userId,amount,admin));
+		jdbcTemplate.update(String.format("update account set available_balance = available_balance + %d, total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id = '%s'", amount - fee, amount - fee, amount - fee,merchantId));
+		jdbcTemplate.update(String.format("update account set available_balance = available_balance - %d, total_balance = total_balance - %d, trans_incomes = trans_incomes - %d where user_id = '%s'", depositAmount + amount - fee, depositAmount + amount - fee, depositAmount + amount - fee,admin));
+		jdbcTemplate.update(String.format("insert into refund(order_id,user_id,depositAmount,admin) values('%s','%s',%d,'%s')",orderId,userId,amount,admin));
 		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,3)",idWorker.nextId(),admin, userId, depositAmount));
-		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,1)",idWorker.nextId(),admin, merchantId, amount));
+		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,1)",idWorker.nextId(),admin, merchantId, amount - fee));
 		return Constants.getResult("refundSucceed");
 	}
 

@@ -444,14 +444,14 @@ public class MainController {
 	}
 
 	//退押金
-	@RequestMapping(value = "/forbidden/refund/{orderId}/{amount}/{depositAmount}/{userId}/{merchantId}", method = RequestMethod.GET)
+	@RequestMapping(value = "/forbidden/refund/{orderId}/{amount}/{depositAmount}/{userId}/{merchantId}/{fee}", method = RequestMethod.GET)
 	@ResponseBody
-	public List<String> refund(@PathVariable String orderId, @PathVariable long amount, @PathVariable long depositAmount, @PathVariable String userId, @PathVariable String merchantId) {
+	public List<String> refund(@PathVariable String orderId, @PathVariable long amount, @PathVariable long depositAmount, @PathVariable String userId, @PathVariable String merchantId, @PathVariable long fee) {
 		try {
-			if (amount < 0 || depositAmount < 0 || StringUtil.isEmpty(orderId) || StringUtil.isEmpty(userId) || StringUtil.isEmpty(merchantId))
+			if (amount < 0 || depositAmount < 0 || StringUtil.isEmpty(orderId) || StringUtil.isEmpty(userId) || StringUtil.isEmpty(merchantId) || StringUtil.isEmpty(fee))
 				return Constants.getResult("argsError");
 
-			return mysqlTx.doRefund(orderId,amount,depositAmount,userId,merchantId);
+			return mysqlTx.doRefund(orderId,amount,depositAmount,userId,merchantId,fee);
 		} catch (Exception e) {
 			logger.error(e);
 			return Constants.getResult("serverException");
