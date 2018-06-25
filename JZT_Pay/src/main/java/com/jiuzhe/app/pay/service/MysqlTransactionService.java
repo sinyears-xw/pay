@@ -8,7 +8,7 @@ public interface MysqlTransactionService {
 	public List<String> doChargeBalance(Map param, boolean newOrder);
 	public List<String> doWithdraw(Map param);
 	public List<String> doDeposit(Map param);
-	public List<String> doRefund(String orderId, long amount, long depositAmount, String userId, String merchantId);
+	public List<String> doRefund(String orderId, long amount, long depositAmount, String userId, String merchantId, long fee);
 	public List<String> doCancelOrder(String orderId, long amount, long depositAmount, String userId, String merchantId);
 	public List<String> updateDepositStatus(String id, long amount);
 	public List<String> updateChargeStatus(String id);

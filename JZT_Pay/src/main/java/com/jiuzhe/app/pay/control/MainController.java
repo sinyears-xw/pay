@@ -448,7 +448,7 @@ public class MainController {
 	@ResponseBody
 	public List<String> refund(@PathVariable String orderId, @PathVariable long amount, @PathVariable long depositAmount, @PathVariable String userId, @PathVariable String merchantId, @PathVariable long fee) {
 		try {
-			if (amount < 0 || depositAmount < 0 || StringUtil.isEmpty(orderId) || StringUtil.isEmpty(userId) || StringUtil.isEmpty(merchantId) || StringUtil.isEmpty(fee))
+			if (amount < 0 || depositAmount < 0 || fee < 0 || StringUtil.isEmpty(orderId) || StringUtil.isEmpty(userId) || StringUtil.isEmpty(merchantId))
 				return Constants.getResult("argsError");
 
 			return mysqlTx.doRefund(orderId,amount,depositAmount,userId,merchantId,fee);
