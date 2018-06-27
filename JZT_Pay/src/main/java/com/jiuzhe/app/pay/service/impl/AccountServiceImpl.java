@@ -224,7 +224,7 @@ public class AccountServiceImpl implements AccountService{
 
 	public List<String> getAccountInfo(String id) throws IOException {
 		try {
-			Map account = jdbcTemplate.queryForMap("select user_id,type,total_balance,disable,withdrawn,available_balance from account where user_id = '" + id + "'");
+			Map account = jdbcTemplate.queryForMap("select user_id,type,total_balance,disable,withdrawn,available_balance,vip_level from account where user_id = '" + id + "'");
 			ObjectMapper mapper = new ObjectMapper();
 			String accountJson =mapper.writeValueAsString(account);
 			return Constants.getResult("querySucceed",accountJson);
