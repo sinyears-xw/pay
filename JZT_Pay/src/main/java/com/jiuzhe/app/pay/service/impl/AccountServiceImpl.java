@@ -267,11 +267,11 @@ public class AccountServiceImpl implements AccountService{
 	}
 
 	public List<String> getproductdetail() {
-		return redisService.getResult("productDetail", "select content from product_detail order by id");
+		return redisService.getResult("productDetail", "select * from product_detail order by id");
 	}
 
 	public List<String> getproductad() {
-		return redisService.getResult("productAD", "select content from product_ad order by id");
+		return redisService.getResult("productAD", "select * from product_ad order by id");
 	}
 
 	public List<String> signin(String userId, String hotelId) {
