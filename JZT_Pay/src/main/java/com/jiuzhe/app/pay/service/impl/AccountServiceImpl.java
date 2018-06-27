@@ -301,6 +301,20 @@ public class AccountServiceImpl implements AccountService{
 		return "";
 	}
 
+	private String getPromotionMaxAmount(List<Map> promotionlist, String type) {
+		if (promotionlist == null)
+			return "";
+
+		Map promotion = null;
+		for (int i = 0; i < promotionlist.size(); i++) {
+			promotion = promotionlist.get(i);
+			if (promotion.get("type").toString().equals(type))
+				return promotion.get("money_max").toString();
+		}
+
+		return "";
+	}
+
 	public List<String> getfrozenasset(String id) throws IOException {
 		if (!checkAccount(id))
 			return Constants.getResult("accountNotFound",id);
@@ -320,6 +334,7 @@ public class AccountServiceImpl implements AccountService{
 			Map product = products.get(i);
 			String type = product.get("promotions_type").toString();
 			product.put("title", getPromotionTitle(promotionlist, type));
+			product.put("maxAmount", getPromotionMaxAmount(promotionlist, type));
 		}
 		
 		String productsJson = mapper.writeValueAsString(products);
