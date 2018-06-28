@@ -274,18 +274,18 @@ public class AccountServiceImpl implements AccountService{
 		return redisService.getResult("productAD", "select * from product_ad order by id");
 	}
 
-	public List<String> signin(String userId, String hotelId) {
+	public List<String> signin(String userId) {
 		Map productCount = jdbcTemplate.queryForMap(String.format("select count(1) num from deposit where user_id = '%s' and promotions_type != 1 and succeeded = 1 and status = 1"), userId);
 		if (Integer.parseInt(productCount.get("num").toString()) <= 0)
 			return Constants.getResult("signedIn", "签到功能仅对参与上线推广活动的会员有用");
 		List checkrs = signincheck(userId);
 		if (checkrs.get(0).equals("60"))
-			jdbcTemplate.update(String.format("insert into sign_in(user_id,hotel_id,dt) values('%s','%s',now())", userId,hotelId));
+			jdbcTemplate.update(String.format("insert into sign_in(user_id,dt) values('%s',now())", userId));
 
 		return Constants.getResult("signedIn", "已完成今日签到，下期将获得额外返利");
 	}
 
-	private List<String> signincheck(String userId) {
+	public List<String> signincheck(String userId) {
 		Map rs = jdbcTemplate.queryForMap(String.format("select count(1) num from sign_in where user_id = '%s' and dt > CAST(CAST(SYSDATE()AS DATE)AS DATETIME)", userId));
 		if (Integer.parseInt(rs.get("num").toString()) <= 0)
 			return Constants.getResult("notSignedIn");

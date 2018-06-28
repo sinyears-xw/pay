@@ -16,8 +16,8 @@ public interface AccountService {
 	public List<String> getpromotion();
 	public List<String> getproductad();
 	public List<String> getfrozenasset(String id) throws IOException;
-	public List<String> signin(String userId, String hotelId);
-	// public List<String> signincheck(String userId);
+	public List<String> signin(String userId);
+	public List<String> signincheck(String userId);
 	public List<String> getSettleAccount(String id, String type) throws IOException;
 	public List<String> getproductdetail();
 }

@@ -206,31 +206,31 @@ public class AccountController {
 
 	@RequestMapping(value = "/signin/{userId}", method = RequestMethod.GET)
 	@ResponseBody
-	public List<String> signin(@PathVariable String userId, @PathVariable String hotelId) {
+	public List<String> signin(@PathVariable String userId) {
 		try {
 			if (StringUtil.isEmpty(userId))
 				return Constants.getResult("argsError","userId");
 			
-			return accountService.signin(userId, hotelId);
+			return accountService.signin(userId);
 		} catch (Exception e) {
 			logger.error(e);
 			return Constants.getResult("serverException");
 		}	
 	}
 
-	// @RequestMapping(value = "/signincheck/{userId}", method = RequestMethod.GET)
-	// @ResponseBody
-	// public List<String> signin(@PathVariable String userId) {
-	// 	try {
-	// 		if (StringUtil.isEmpty(userId))
-	// 			return Constants.getResult("argsError","userId");
+	@RequestMapping(value = "/signincheck/{userId}", method = RequestMethod.GET)
+	@ResponseBody
+	public List<String> signincheck(@PathVariable String userId) {
+		try {
+			if (StringUtil.isEmpty(userId))
+				return Constants.getResult("argsError","userId");
 			
-	// 		return accountService.signincheck(userId);
-	// 	} catch (Exception e) {
-	// 		logger.error(e);
-	// 		return Constants.getResult("serverException");
-	// 	}	
-	// }
+			return accountService.signincheck(userId);
+		} catch (Exception e) {
+			logger.error(e);
+			return Constants.getResult("serverException");
+		}	
+	}
 
 	@RequestMapping(value = "/getsettleaccount/{id}/{type}", method = RequestMethod.GET)
 	@ResponseBody
