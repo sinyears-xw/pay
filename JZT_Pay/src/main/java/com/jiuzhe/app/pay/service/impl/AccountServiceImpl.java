@@ -282,7 +282,7 @@ public class AccountServiceImpl implements AccountService{
 		if (checkrs.get(0).equals("60"))
 			jdbcTemplate.update(String.format("insert into sign_in(user_id,hotel_id,dt) values('%s','%s',now())", userId,hotelId));
 
-		return Constants.getResult("signedIn"， "已完成今日签到，下期将获得额外返利");
+		return Constants.getResult("signedIn", "已完成今日签到，下期将获得额外返利");
 	}
 
 	private List<String> signincheck(String userId) {
