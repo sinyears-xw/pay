@@ -275,9 +275,11 @@ public class AccountServiceImpl implements AccountService{
 	}
 
 	public List<String> signin(String userId) {
-		Map productCount = jdbcTemplate.queryForMap(String.format("select count(1) num from deposit where user_id = '%s' and promotions_type != 1 and succeeded = 1 and status = 1"), userId);
+		Map productCount = jdbcTemplate.queryForMap(String.format("select count(1) num from deposit where user_id = '%s' and promotions_type != 1 and succeeded = 1 and status = 1",userId));
+
 		if (Integer.parseInt(productCount.get("num").toString()) <= 0)
 			return Constants.getResult("signedIn", "签到功能仅对参与上线推广活动的会员有用");
+
 		List checkrs = signincheck(userId);
 		if (checkrs.get(0).equals("60"))
 			jdbcTemplate.update(String.format("insert into sign_in(user_id,dt) values('%s',now())", userId));
