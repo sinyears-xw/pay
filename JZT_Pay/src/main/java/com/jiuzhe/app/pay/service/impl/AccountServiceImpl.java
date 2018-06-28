@@ -275,11 +275,17 @@ public class AccountServiceImpl implements AccountService{
 	}
 
 	public List<String> signin(String userId, String hotelId) {
-		jdbcTemplate.update(String.format("insert into sign_in(user_id,hotel_id,dt) values('%s','%s',now())", userId,hotelId));
-		return Constants.getResult("signedIn");
+		Map productCount = jdbcTemplate.queryForMap(String.format("select count(1) num from deposit where user_id = '%s' and promotions_type != 1 and succeeded = 1 and status = 1"), userId);
+		if (Integer.parseInt(productCount.get("num").toString()) <= 0)
+			return Constants.getResult("signedIn", "签到功能仅对参与上线推广活动的会员有用");
+		List checkrs = signincheck(userId);
+		if (checkrs.get(0).equals("60"))
+			jdbcTemplate.update(String.format("insert into sign_in(user_id,hotel_id,dt) values('%s','%s',now())", userId,hotelId));
+
+		return Constants.getResult("signedIn"， "已完成今日签到，下期将获得额外返利");
 	}
 
-	public List<String> signincheck(String userId) {
+	private List<String> signincheck(String userId) {
 		Map rs = jdbcTemplate.queryForMap(String.format("select count(1) num from sign_in where user_id = '%s' and dt > CAST(CAST(SYSDATE()AS DATE)AS DATETIME)", userId));
 		if (Integer.parseInt(rs.get("num").toString()) <= 0)
 			return Constants.getResult("notSignedIn");
