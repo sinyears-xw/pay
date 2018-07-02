@@ -256,7 +256,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 			amount = Long.parseLong(current.get("available_amount").toString());
 			if (amount - totalamount > 0)
 				break;
-			sql = String.format("update deposit set status = 2, updt = now(), available_amount = 0 where id = %d", id);
+			sql = String.format("update deposit set updt = now(), available_amount = 0 where id = %d", id);
 			jdbcTemplate.update(sql);
 			totalamount -= amount;
 		}
