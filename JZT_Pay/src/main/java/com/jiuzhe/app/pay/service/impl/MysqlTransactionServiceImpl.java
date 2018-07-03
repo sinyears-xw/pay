@@ -93,6 +93,27 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		}
 	}
 
+	private boolean checkNo(String no) {
+		int subNum = 10;
+		boolean check = false;
+		char areaNum[] = new char[]{'A','B','C','D'};
+		int noLen = no.length();
+		if (noLen < 2)
+			return check;
+
+		char level = no.charAt(noLen - 1);
+		if (level < areaNum[0] || level > areaNum[areaNum.length - 1])
+			return check;
+
+		if (noLen < ((int)level - (int)areaNum[0] + 2))
+			return check;
+
+		try{int levelNo = (int)(no.charAt(noLen - 2));}
+		catch(Exception e) {return check;}
+		
+		return true;
+	}
+
 	private List recordDeposit(String from, long amount, String financeType, String depositId, String referee, String referee_phone) {
 		String deposit_rule = rt.opsForValue().get("deposit_rule" + financeType);
 		List<Map<String, String>> rules = null;
@@ -151,10 +172,14 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		}
 
 		if (referee.equals(""))
-			referee = "null";
+			referee = " ";
 
 		if (referee_phone.equals(""))
-			referee_phone = "null";
+			referee_phone = " ";
+		else {
+			if (!checkNo(referee_phone))
+				return Constants.getResult("invitationCodeWrong");
+		}
 	
 		if (!withdraw_time_limit.equals("")) {
 			String dataformat = "%Y-%m-%d %H:%i:%s";
