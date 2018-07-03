@@ -94,6 +94,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 	}
 
 	private boolean checkNo(String no) {
+		no = no.toUpperCase();
 		int subNum = 10;
 		boolean check = false;
 		char areaNum[] = new char[]{'A','B','C','D'};
