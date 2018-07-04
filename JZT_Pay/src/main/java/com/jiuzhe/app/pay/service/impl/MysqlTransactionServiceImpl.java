@@ -349,6 +349,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 
 		String from = param.get("user_from").toString();
 		String to = param.get("user_to").toString();
+		
 		if (from.equals(to))
 			return Constants.getResult("sameAccount",from,to);
 
@@ -485,7 +486,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		if (newOrder)
 			jdbcTemplate.update(String.format("insert into charges(user_id,order_id,status,amount,deposit_amount,merchant_id,fee) values('%s','%s',%d,%d,%d,'%s',%d)",from,orderId,1,amount,depositAmount,to,fee));
 		else
-			jdbcTemplate.update(String.format("update charges set status = 1, updt = now() where order_id = '%s'",orderId));
+			jdbcTemplate.update(String.format("update charges set status = 1, updt = now(), fee = %d where order_id = '%s'",fee,orderId));
 		
 		if (depositAmount > 0) {
 			jdbcTemplate.update(String.format("update account set available_balance = available_balance + %d, total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id = '%s'", depositAmount, depositAmount, depositAmount,admin));
