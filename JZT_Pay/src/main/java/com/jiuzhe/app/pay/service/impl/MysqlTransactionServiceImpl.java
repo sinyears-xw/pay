@@ -415,7 +415,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		Map orderData = (Map)orderResult.get("data");
 		long amount = Long.parseLong(orderData.get("skuPrice").toString()) * 100;
 		long depositAmount = Long.parseLong(orderData.get("skuBond").toString()) * 100;
-		long fee = Long.parseLong(orderData.get("skuFee").toString()) * 100;
+		long fee = Long.parseLong(orderData.get("platformFee").toString()) * 100;
 	
 		String from = param.get("user_from").toString();
 		String to = param.get("user_to").toString();
@@ -658,21 +658,27 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 
 	@Transactional
 	public List<String> createDepositInCharge(String id, long amount) {
-		List<Map<String,Object>> rslist = jdbcTemplate.queryForList(String.format("select status,user_id from charges where order_id = '%s' for update",id));
+		List<Map<String,Object>> rslist = jdbcTemplate.queryForList(String.format("select status,user_id,deposit_created from charges where order_id = '%s' for update",id));
 		if (rslist == null || rslist.size() == 0) {
 			return Constants.getResult("chargeOrderNotFound");
 		}
 
 		Map<String,Object> rs = rslist.get(0);
 		String status = rs.get("status").toString();
-		if (status.equals("successed"))
+		String deposit_created = rs.get("deposit_created").toString();
+		if (status.equals("successed") || deposit_created.equals("0"))
 			return Constants.getResult("depositSucceed");
 
+		
 		String from = rs.get("user_id").toString();
 		String depositId = String.valueOf(idWorker.nextId());
 		List<String> checkrs =  recordDeposit(from, amount, "A",depositId, "", "");
-		if (checkrs.get(0).equals("13"))
-			return updateDepositStatus(depositId, amount);
+		if (checkrs.get(0).equals("13")) {
+			 checkrs = updateDepositStatus(depositId, amount);
+			 if (checkrs.get(0).equals("13")) {
+			 	jdbcTemplate.update(String.format("update charges set deposit_created = 1 where order_id = '%s' for update",id));
+			 }
+		}
 		return checkrs;
 	}
 
