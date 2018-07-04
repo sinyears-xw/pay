@@ -494,7 +494,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 
 		Map postData = new HashMap<String,String>();
 		postData.put("id",orderId);
-		postData.put("status","2");
+		postData.put("status","3");
 		Map result = restTemplate.postForObject("http://JZT-HOTEL-CORE/hotelorders/orderchange", postData,Map.class);
 
 		if (!(result.get("status").toString().equals("0"))) {
