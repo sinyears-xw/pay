@@ -779,7 +779,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		jdbcTemplate.update(String.format("update account set available_balance = available_balance + %d, total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id = '%s'", depositAmount, depositAmount, depositAmount,userId));
 		jdbcTemplate.update(String.format("update account set available_balance = available_balance + %d, total_balance = total_balance + %d, trans_incomes = trans_incomes + %d where user_id = '%s'", amount - fee, amount - fee, amount - fee,merchantId));
 		jdbcTemplate.update(String.format("update account set available_balance = available_balance - %d, total_balance = total_balance - %d, trans_incomes = trans_incomes - %d where user_id = '%s'", depositAmount + amount - fee, depositAmount + amount - fee, depositAmount + amount - fee,admin));
-		jdbcTemplate.update(String.format("insert into refund(order_id,user_id,depositAmount,admin) values('%s','%s',%d,'%s')",orderId,userId,amount,admin));
+		jdbcTemplate.update(String.format("insert into refund(order_id,user_id,amount,admin) values('%s','%s',%d,'%s')",orderId,userId,amount,admin));
 		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,3)",idWorker.nextId(),admin, userId, depositAmount));
 		jdbcTemplate.update(String.format("insert into transaction(tx_id,user_from,user_to,amount,type) values(%d,'%s','%s',%d,1)",idWorker.nextId(),admin, merchantId, amount - fee));
 		return Constants.getResult("refundSucceed");
