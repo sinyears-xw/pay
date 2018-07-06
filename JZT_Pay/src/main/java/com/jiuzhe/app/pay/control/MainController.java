@@ -125,7 +125,7 @@ public class MainController {
 
     private Map<String,String> getWeChatPayReturn(HttpServletRequest request) {
     	try {
-    		logger.info(getIpAddress(request));
+    		// logger.info(getIpAddress(request));
             InputStream inStream = request.getInputStream();
             int _buffer_size = 4096;
             if (inStream != null) {
@@ -225,7 +225,7 @@ public class MainController {
 			Map<String,String> params = getWeChatPayReturn(request);
 			String rswx = "<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>";
 			if (params != null) {
-				logger.info(params);
+				// logger.info(params);
 
 				if (!params.get("return_code").equals("SUCCESS")) {
 					logger.error(params.get("return_msg"));
