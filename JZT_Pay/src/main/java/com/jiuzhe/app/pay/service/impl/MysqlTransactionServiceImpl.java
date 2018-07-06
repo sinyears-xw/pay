@@ -667,7 +667,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		Map<String,Object> rs = rslist.get(0);
 		String status = rs.get("status").toString();
 		String deposit_created = rs.get("deposit_created").toString();
-		if (status.equals("successed") || deposit_created.equals("0"))
+		if (status.equals("successed") || deposit_created.equals("1"))
 			return Constants.getResult("depositSucceed");
 
 		
@@ -677,7 +677,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		if (checkrs.get(0).equals("13")) {
 			 checkrs = updateDepositStatus(depositId, amount);
 			 if (checkrs.get(0).equals("13")) {
-			 	jdbcTemplate.update(String.format("update charges set deposit_created = 1 where order_id = '%s' for update",id));
+			 	jdbcTemplate.update(String.format("update charges set deposit_created = 1 where order_id = '%s'",id));
 			 }
 		}
 		return checkrs;
