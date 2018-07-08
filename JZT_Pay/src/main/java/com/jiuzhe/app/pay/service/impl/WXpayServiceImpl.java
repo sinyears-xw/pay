@@ -126,7 +126,7 @@ public class WXpayServiceImpl implements WXpayService {
         return map;  
     }  
 
-	public List<String> getOrder(String outtradeno, long amount, String body, String notify_url, String ip) throws Exception{
+	public List<String> getOrder(String outtradeno, long amount, String body, String notify_url, String ip, boolean credit_forbidden) throws Exception{
 		    Map<String,String> param = new HashMap<String,String>();  
         param.put("appid", WXpayUtil.app_id);  
         param.put("mch_id", WXpayUtil.merchant_ID);  
@@ -137,7 +137,8 @@ public class WXpayServiceImpl implements WXpayService {
         param.put("spbill_create_ip", ip);
         param.put("notify_url",notify_url);  
         param.put("trade_type", "APP");
-        param.put("limit_pay", "no_credit");  
+        if (credit_forbidden)
+          param.put("limit_pay", "no_credit");
           
         String sign = GetSign(param);
         param.put("sign", sign);

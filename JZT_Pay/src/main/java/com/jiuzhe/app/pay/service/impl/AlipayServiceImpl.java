@@ -31,7 +31,7 @@ import javax.servlet.http.HttpServletRequest;
 public class AlipayServiceImpl implements AlipayService {
 	private  Log logger = LogFactory.getLog(this.getClass());
 
-	public List<String> getOrder(String outtradeno, double amount, String body, String subject, String notify_url) {
+	public List<String> getOrder(String outtradeno, double amount, String body, String subject, String notify_url, boolean credit_forbidden) {
 		AlipayTradeAppPayRequest request = new AlipayTradeAppPayRequest();
 		AlipayTradeAppPayModel model = new AlipayTradeAppPayModel();
 
@@ -41,7 +41,8 @@ public class AlipayServiceImpl implements AlipayService {
 		model.setTimeoutExpress("30m");
 		model.setTotalAmount(String.valueOf(amount));
 		model.setProductCode("QUICK_MSECURITY_PAY");
-		model.setDisablePayChannels("creditCard,creditCardExpress,creditCardCartoon,credit_group");
+		if (credit_forbidden)
+			model.setDisablePayChannels("creditCard,creditCardExpress,creditCardCartoon,credit_group");
 		request.setBizModel(model);
 		request.setNotifyUrl(notify_url);
 		try {

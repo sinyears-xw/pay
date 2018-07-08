@@ -347,7 +347,7 @@ public class MainController {
 
 			List<String> checkrs = mysqlTx.doDeposit(paramMap);
 			if (checkrs.get(0).equals("13")) {
-				return wxpayService.getOrder(checkrs.get(2),Long.parseLong(checkrs.get(4)),body,WXpayUtil.notify_url_deposit,ip);
+				return wxpayService.getOrder(checkrs.get(2),Long.parseLong(checkrs.get(4)),body,WXpayUtil.notify_url_deposit,ip,true);
 			}
 
 			return checkrs;
@@ -369,7 +369,7 @@ public class MainController {
 			String ip = paramMap.get("ip").toString();
 			List<String> checkrs = mysqlTx.doCharge(paramMap);
 			if (checkrs.get(0).equals("50")) {
-				return wxpayService.getOrder(checkrs.get(2),Long.parseLong(checkrs.get(4)),body,WXpayUtil.notify_url_charge,ip);
+				return wxpayService.getOrder(checkrs.get(2),Long.parseLong(checkrs.get(4)),body,WXpayUtil.notify_url_charge,ip,true);
 			}
 
 			return checkrs;
@@ -392,7 +392,7 @@ public class MainController {
 
 			List<String> checkrs = mysqlTx.doDeposit(paramMap);
 			if (checkrs.get(0).equals("13")) {
-				return alipayService.getOrder(checkrs.get(2),Double.parseDouble(checkrs.get(3)),body,subject,AlipayUtil.notify_url_deposit);
+				return alipayService.getOrder(checkrs.get(2),Double.parseDouble(checkrs.get(3)),body,subject,AlipayUtil.notify_url_deposit,true);
 			}
 
 			return checkrs;
@@ -414,7 +414,7 @@ public class MainController {
 			String subject = paramMap.get("subject").toString();
 			List<String> checkrs = mysqlTx.doCharge(paramMap);
 			if (checkrs.get(0).equals("50")) {
-				return alipayService.getOrder(checkrs.get(2),Double.parseDouble(checkrs.get(3)),body,subject,AlipayUtil.notify_url_charge);
+				return alipayService.getOrder(checkrs.get(2),Double.parseDouble(checkrs.get(3)),body,subject,AlipayUtil.notify_url_charge,true);
 			}
 
 			return checkrs;
