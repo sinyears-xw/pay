@@ -136,7 +136,8 @@ public class WXpayServiceImpl implements WXpayService {
         param.put("total_fee", amount+"");  
         param.put("spbill_create_ip", ip);
         param.put("notify_url",notify_url);  
-        param.put("trade_type", "APP");  
+        param.put("trade_type", "APP");
+        param.put("limit_pay", "no_credit");  
           
         String sign = GetSign(param);
         param.put("sign", sign);

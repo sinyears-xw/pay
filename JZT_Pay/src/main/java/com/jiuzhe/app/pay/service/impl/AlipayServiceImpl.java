@@ -41,6 +41,7 @@ public class AlipayServiceImpl implements AlipayService {
 		model.setTimeoutExpress("30m");
 		model.setTotalAmount(String.valueOf(amount));
 		model.setProductCode("QUICK_MSECURITY_PAY");
+		model.setDisablePayChannels("creditCard,creditCardExpress,creditCardCartoon,credit_group");
 		request.setBizModel(model);
 		request.setNotifyUrl(notify_url);
 		try {
