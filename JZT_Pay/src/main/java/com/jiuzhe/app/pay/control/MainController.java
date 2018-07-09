@@ -346,8 +346,13 @@ public class MainController {
 			String ip = paramMap.get("ip").toString();
 
 			List<String> checkrs = mysqlTx.doDeposit(paramMap);
+
+			boolean forbiddenCredit = true;
+			if (param.containsKey("is_credit") && param.get("is_credit").toString().equals("1"))
+				forbiddenCredit = false;
+
 			if (checkrs.get(0).equals("13")) {
-				return wxpayService.getOrder(checkrs.get(2),Long.parseLong(checkrs.get(4)),body,WXpayUtil.notify_url_deposit,ip,true);
+				return wxpayService.getOrder(checkrs.get(2),Long.parseLong(checkrs.get(4)),body,WXpayUtil.notify_url_deposit,ip,forbiddenCredit);
 			}
 
 			return checkrs;
@@ -391,8 +396,12 @@ public class MainController {
 			String subject = paramMap.get("subject").toString();
 
 			List<String> checkrs = mysqlTx.doDeposit(paramMap);
+
+			boolean forbiddenCredit = true;
+			if (param.containsKey("is_credit") && param.get("is_credit").toString().equals("1"))
+				forbiddenCredit = false;
 			if (checkrs.get(0).equals("13")) {
-				return alipayService.getOrder(checkrs.get(2),Double.parseDouble(checkrs.get(3)),body,subject,AlipayUtil.notify_url_deposit,true);
+				return alipayService.getOrder(checkrs.get(2),Double.parseDouble(checkrs.get(3)),body,subject,AlipayUtil.notify_url_deposit,forbiddenCredit);
 			}
 
 			return checkrs;

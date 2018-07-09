@@ -115,7 +115,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		return true;
 	}
 
-	private List recordDeposit(String from, long amount, String financeType, String depositId, String referee, String referee_phone, boolean credit_forbidden) {
+	private List recordDeposit(String from, long amount, String financeType, String depositId, String referee, String referee_phone, boolean isCredit) {
 
 		if (referee.equals(""))
 			referee = " ";
@@ -127,7 +127,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 				return Constants.getResult("invitationCodeWrong");
 		}
 
-		if (!credit_forbidden) {
+		if (isCredit) {
 			String sql = String.format("insert into deposit(id,user_id,amount,available_amount,created,promotions_type,referee,referee_phone,is_credit) values(%d,'%s', %d, %d, now(),'A','%s','%s',1)",Long.parseLong(depositId),from,amount,amount,referee,referee_phone);
 
 			jdbcTemplate.update(sql);
