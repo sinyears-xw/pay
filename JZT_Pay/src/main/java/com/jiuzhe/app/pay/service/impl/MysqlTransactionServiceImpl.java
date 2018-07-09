@@ -125,8 +125,14 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		if (noLen < ((int)level - (int)areaNum[0] + 2))
 			return check;
 
-		try{int levelNo = (int)(no.charAt(noLen - 2));}
-		catch(Exception e) {return check;}
+		try {
+			String levelNoStr=no.substring(0,no.length() - 1);
+			if (levelNoStr.startsWith("0"))
+				return check;
+			int levelNo = Integer.parseInt(levelNoStr);
+		} catch(Exception e) {
+			return check;
+		}
 		
 		return true;
 	}
