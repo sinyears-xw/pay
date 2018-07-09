@@ -142,7 +142,6 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 			if (!checkNo(referee_phone))
 				return Constants.getResult("invitationCodeWrong");
 		}
-
 		int isCreditInDB = 0;
 		if (isCredit)
 			isCreditInDB = 1;
