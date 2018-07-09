@@ -115,7 +115,27 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		return true;
 	}
 
-	private List recordDeposit(String from, long amount, String financeType, String depositId, String referee, String referee_phone) {
+	private List recordDeposit(String from, long amount, String financeType, String depositId, String referee, String referee_phone, boolean credit_forbidden) {
+
+		if (referee.equals(""))
+			referee = " ";
+
+		if (referee_phone.equals(""))
+			referee_phone = " ";
+		else {
+			if (!checkNo(referee_phone))
+				return Constants.getResult("invitationCodeWrong");
+		}
+
+		if (!credit_forbidden) {
+			String sql = String.format("insert into deposit(id,user_id,amount,available_amount,created,promotions_type,referee,referee_phone,is_credit) values(%d,'%s', %d, %d, now(),'A','%s','%s',1)",Long.parseLong(depositId),from,amount,amount,referee,referee_phone);
+
+			jdbcTemplate.update(sql);
+
+			double aliamount = ((double)amount) / 100;
+			return Constants.getResult("depositSucceed",depositId,String.valueOf(aliamount),String.valueOf(amount));
+		}
+
 		String deposit_rule = rt.opsForValue().get("deposit_rule" + financeType);
 		List<Map<String, String>> rules = null;
 		if (deposit_rule == null) 
@@ -172,15 +192,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 			}
 		}
 
-		if (referee.equals(""))
-			referee = " ";
-
-		if (referee_phone.equals(""))
-			referee_phone = " ";
-		else {
-			if (!checkNo(referee_phone))
-				return Constants.getResult("invitationCodeWrong");
-		}
+		
 	
 		if (!withdraw_time_limit.equals("")) {
 			String dataformat = "%Y-%m-%d %H:%i:%s";
@@ -673,7 +685,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		
 		String from = rs.get("user_id").toString();
 		String depositId = String.valueOf(idWorker.nextId());
-		List<String> checkrs =  recordDeposit(from, amount, "A",depositId, "", "");
+		List<String> checkrs =  recordDeposit(from, amount, "A",depositId, "", "",false);
 		if (checkrs.get(0).equals("13")) {
 			 checkrs = updateDepositStatus(depositId, amount);
 			 if (checkrs.get(0).equals("13")) {
@@ -706,7 +718,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 
 	@Transactional
 	public List<String> updateDepositStatus(String id, long amount) {
-		List<Map<String,Object>> rslist = jdbcTemplate.queryForList(String.format("select withdraw_interval_type,period,promotions_type,succeeded,user_id from deposit where id = '%s' for update",id));
+		List<Map<String,Object>> rslist = jdbcTemplate.queryForList(String.format("select withdraw_interval_type,period,promotions_type,succeeded,user_id,is_credit from deposit where id = '%s' for update",id));
 		if (rslist == null || rslist.size() == 0) {
 			return Constants.getResult("depositOrderNotFound");
 		}
@@ -717,13 +729,25 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		if (succeeded.equals("1"))
 			return Constants.getResult("depositOrderAlreadyFinished");
 		
+		String is_credit = rs.get("is_credit").toString();
+		int isCredit = 0;
+		if (is_credit.equals("1"))
+			isCredit = 1;
+
 		String from = rs.get("user_id").toString();
 		String period = rs.get("period").toString();
 		String withdraw_interval_type = rs.get("withdraw_interval_type").toString();
 		long available_amount = amount;
 		String sql = null;
+		long fee = 0;
 		
 		if (financeType.equals("A")) {
+			if (isCredit == 1) {
+				double amountDBLE = (double)amount;
+				available_amount = (long)Math.floor(amountDBLE * (100 - 5) / 100);
+				fee = amount - available_amount;
+				amount = available_amount;
+			}
 			
 			sql = String.format("update account set total_balance = total_balance + %d, available_balance = available_balance + %d, updt = now() where user_id = '%s'", amount, amount, from);
 			jdbcTemplate.update(sql);	
@@ -732,7 +756,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 			sql = String.format("update account set total_balance = total_balance + %d, updt=now() where user_id = '%s'", amount, from);
 			jdbcTemplate.update(sql);
 		}
-		sql = String.format("update deposit set amount = %d,available_amount = %d,succeeded = 1,time_succeeded = date_add(now(), interval -1 second), updt = now(),status = 1, to_pay_dt = date_add(now(), interval %s %s), left_amount = %d where id = %s",amount,available_amount,period,withdraw_interval_type,amount,id);
+		sql = String.format("update deposit set amount = %d,available_amount = %d,succeeded = 1,time_succeeded = date_add(now(), interval -1 second), updt = now(),status = 1, to_pay_dt = date_add(now(), interval %s %s), left_amount = %d, fee = %d, is_credit = %d where id = %s",amount,available_amount,period,withdraw_interval_type,amount,fee,isCredit,id);
 		
 		jdbcTemplate.update(sql);
 		return Constants.getResult("depositSucceed");
@@ -744,12 +768,17 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		String financeType = param.get("finance_type").toString();
 		String referee = "";
 		String referee_phone = "";
+		boolean isCredit = false;
 
 		if (param.containsKey("referee")) 
 			referee = param.get("referee").toString();
 
 		if (param.containsKey("referee_phone")) 
 			referee_phone = param.get("referee_phone").toString();
+
+		if (param.containsKey("is_credit") && param.get("is_credit").toString().equals("1")) 
+			isCredit = true;
+		
 		
 		if(checkId(depositId,1))
 			return Constants.getResult("duplicatedId");
@@ -767,7 +796,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		if (!checkrs.get(0).equals("5"))
 			return checkrs;
 
-		return recordDeposit(from, amount, financeType, depositId, referee, referee_phone);
+		return recordDeposit(from, amount, financeType, depositId, referee, referee_phone,isCredit);
 	}
 
 	@Transactional
