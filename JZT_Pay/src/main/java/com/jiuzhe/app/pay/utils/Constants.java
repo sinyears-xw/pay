@@ -70,6 +70,7 @@ public class Constants {
             put("wxpayError", Arrays.asList("62","微信支付失败"));
             put("toJsonError", Arrays.asList("63","转换json失败"));
             put("invitationCodeWrong", Arrays.asList("64","推荐码错误"));
+            put("noVipSignedIn", Arrays.asList("65","未买产品用户签到"));
         }
     };
 
