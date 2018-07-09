@@ -348,7 +348,7 @@ public class MainController {
 			List<String> checkrs = mysqlTx.doDeposit(paramMap);
 
 			boolean forbiddenCredit = true;
-			if (param.containsKey("is_credit") && param.get("is_credit").toString().equals("1"))
+			if (paramMap.containsKey("is_credit") && paramMap.get("is_credit").toString().equals("1"))
 				forbiddenCredit = false;
 
 			if (checkrs.get(0).equals("13")) {
@@ -398,7 +398,7 @@ public class MainController {
 			List<String> checkrs = mysqlTx.doDeposit(paramMap);
 
 			boolean forbiddenCredit = true;
-			if (param.containsKey("is_credit") && param.get("is_credit").toString().equals("1"))
+			if (paramMap.containsKey("is_credit") && paramMap.get("is_credit").toString().equals("1"))
 				forbiddenCredit = false;
 			if (checkrs.get(0).equals("13")) {
 				return alipayService.getOrder(checkrs.get(2),Double.parseDouble(checkrs.get(3)),body,subject,AlipayUtil.notify_url_deposit,forbiddenCredit);
