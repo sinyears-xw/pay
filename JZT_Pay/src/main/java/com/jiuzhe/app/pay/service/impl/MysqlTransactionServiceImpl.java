@@ -732,7 +732,7 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 			sql = String.format("update account set total_balance = total_balance + %d, updt=now() where user_id = '%s'", amount, from);
 			jdbcTemplate.update(sql);
 		}
-		sql = String.format("update deposit set amount = %d,available_amount = %d,succeeded = 1,time_succeeded = date_add(now(), interval -1 second), updt = now(),status = 1, to_pay_dt = date_add(now(), interval %s %s) where id = %s",amount,available_amount,period,withdraw_interval_type,id);
+		sql = String.format("update deposit set amount = %d,available_amount = %d,succeeded = 1,time_succeeded = date_add(now(), interval -1 second), updt = now(),status = 1, to_pay_dt = date_add(now(), interval %s %s), left_amount = %d where id = %s",amount,available_amount,period,withdraw_interval_type,amount,id);
 		
 		jdbcTemplate.update(sql);
 		return Constants.getResult("depositSucceed");
