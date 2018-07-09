@@ -346,6 +346,7 @@ public class AccountServiceImpl implements AccountService{
 		}
 		
 		String productsJson = mapper.writeValueAsString(products);
+		// logger.info(productsJson);
 		return Constants.getResult("querySucceed",productsJson);
 	}
 
