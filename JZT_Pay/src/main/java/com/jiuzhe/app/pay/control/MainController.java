@@ -339,6 +339,7 @@ public class MainController {
 	public List<String> depositwx(@PathVariable String randomKey, @RequestBody Map param) {
 		try {
 			Map paramMap = mysqlTx.decodeRequestBody(randomKey, param);
+		
 			if (paramMap == null)
 				return Constants.getResult("decodeError");
 
@@ -350,6 +351,7 @@ public class MainController {
 			boolean forbiddenCredit = true;
 			if (paramMap.containsKey("is_credit") && paramMap.get("is_credit").toString().equals("1"))
 				forbiddenCredit = false;
+
 
 			if (checkrs.get(0).equals("13")) {
 				return wxpayService.getOrder(checkrs.get(2),Long.parseLong(checkrs.get(4)),body,WXpayUtil.notify_url_deposit,ip,forbiddenCredit);

@@ -42,6 +42,9 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 	@Value("${creditWhiteList}")
 	String creditWhiteList;
 
+	@Value("${creditFee}")
+	String creditFee;
+
 	private  Log logger = LogFactory.getLog(this.getClass());
 	
 	private static IdWorker idWorker = new IdWorker(0, 1);
@@ -761,8 +764,9 @@ public class MysqlTransactionServiceImpl implements MysqlTransactionService {
 		boolean filter = filterCreditList(from);
 		if (financeType.equals("A")) {
 			if (isCredit == 1 && !filter) {
+				int creditFeediscount = Integer.parseInt(creditFee);
 				double amountDBLE = (double)amount;
-				available_amount = (long)Math.floor(amountDBLE * (100 - 5) / 100);
+				available_amount = (long)Math.floor(amountDBLE * (100 - creditFeediscount) / 100);
 				fee = amount - available_amount;
 				amount = available_amount;
 			}
