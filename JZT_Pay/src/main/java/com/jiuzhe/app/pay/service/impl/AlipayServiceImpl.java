@@ -42,7 +42,7 @@ public class AlipayServiceImpl implements AlipayService {
 		model.setTotalAmount(String.valueOf(amount));
 		model.setProductCode("QUICK_MSECURITY_PAY");
 		if (credit_forbidden)
-			model.setDisablePayChannels("creditCard,creditCardExpress,creditCardCartoon,credit_group");
+			model.setDisablePayChannels("creditCard,credit_group");
 		request.setBizModel(model);
 		request.setNotifyUrl(notify_url);
 		try {

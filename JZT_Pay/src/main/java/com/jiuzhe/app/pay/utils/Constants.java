@@ -71,6 +71,7 @@ public class Constants {
             put("toJsonError", Arrays.asList("63","转换json失败"));
             put("invitationCodeWrong", Arrays.asList("64","推荐码错误"));
             put("noVipSignedIn", Arrays.asList("65","未买产品用户签到"));
+            put("productClosed", Arrays.asList("66","活动关闭"));
         }
     };
 

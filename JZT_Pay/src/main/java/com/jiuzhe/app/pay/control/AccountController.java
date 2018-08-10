@@ -172,7 +172,8 @@ public class AccountController {
 	@ResponseBody
 	public List<String> getproductad() {
 		try {
-			return accountService.getproductad();
+			// return accountService.getproductad();
+			return Constants.getResult("productClosed");
 		} catch (Exception e) {
 			logger.error(e);
 			return Constants.getResult("serverException");
